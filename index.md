@@ -30,8 +30,8 @@
 | 26 | [Explain delay models in digital circuits and gates.](./answers.md#q26) |
 | 27 | [Draw a 2:1 MUX using NAND gates.](./answers.md#q27) |
 | 28 | [Compare BJT and MOSFET.](./answers.md#q28) |
-| 29 | [What gates are used in Verilog? What is a universal gate? Draw OR and NOR truth tables.](./answers.md#q29) |
-| 30 | [Difference between combinational and sequential circuits.](./answers.md#q30) |
+| 29 | [What gates are used in Verilog? What is a universal gate? Draw OR/NOR truth tables and design NOR using OR/AND.](./answers.md#q29) |
+| 30 | [Difference between sequential and combinational circuit.](./answers.md#q30) |
 | 31 | [Draw a Mealy state machine for overlapping and non-overlapping sequence detection.](./answers.md#q31) |
 | 32 | [Difference between microprocessor and microcontroller.](./answers.md#q32) |
 | 33 | [What are stack pointer and program counter?](./answers.md#q33) |
@@ -40,15 +40,4 @@
 | 36 | [Implement XOR logic using NOR gates.](./answers.md#q36) |
 | 37 | [What are FFT and DFT?](./answers.md#q37) |
 | 38 | [Explain Nyquist stability criterion.](./answers.md#q38) |
-| 39 | [What is an ADC?](./answers.md#q39) |
-| 40 | [Explain a communication channel from microphone input to receiver output.](./answers.md#q40) |
-| 41 | [Draw CMOS diagrams for inverter, NAND, NOR, AND, and OR.](./answers.md#q41) |
-| 42 | [Draw NMOS diagram, explain working, and explain characteristic regions.](./answers.md#q42) |
-| 43 | [What is latch-up?](./answers.md#q43) |
-| 44 | [Difference between asynchronous and synchronous circuits.](./answers.md#q44) |
-| 45 | [Write Verilog code for a 2-bit counter with circuit and truth table.](./answers.md#q45) |
-| 46 | [What is FIFO and how does it work?](./answers.md#q46) |
-| 47 | [Difference between behavioral code, RTL code, and testbench code.](./answers.md#q47) |
-| 48 | [Difference between `always` and `initial` block.](./answers.md#q48) |
-| 49 | [What is the history of flip-flops, why were early ones level-triggered, and what do we use now?](./answers.md#q49) |
 | - | [Source References](./answers.md#sources) |

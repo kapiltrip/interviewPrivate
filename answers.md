@@ -919,6 +919,734 @@ If `J = K = 1`, the flip-flop toggles. But in a master-slave JK flip-flop, it to
 
 [Back to index](./index.md)
 
+<a id="q25"></a>
+## 25. Which is preferred in circuits: NAND gates or NOR gates?
+
+**Written answer:**
+
+**Definition to remember:** NAND and NOR are both universal gates. That means any Boolean function can be implemented using only NAND gates or only NOR gates. [[S9]](#s9)
+
+The preference between NAND and NOR depends on the circuit, technology, and design goals. Logically, neither is more powerful than the other, because both are universal. But in practical CMOS digital design, NAND gates are often preferred because they usually give better speed and area characteristics. [[S10]](#s10)
+
+**Why NAND is often preferred in CMOS:**
+
+1. **Ease of implementation:** NAND gates are simple and very common in CMOS standard-cell libraries. Designers often use NAND-based logic because it maps efficiently into practical circuits.
+2. **Transistor structure:** In a CMOS NAND gate, the PMOS transistors are in parallel and the NMOS transistors are in series. In a CMOS NOR gate, the PMOS transistors are in series and the NMOS transistors are in parallel. Since PMOS devices are generally weaker/slower than NMOS devices, series PMOS in NOR usually makes the pull-up path slower or larger. [[S10]](#s10)
+3. **Size and power:** To make a NOR gate as fast as a NAND gate, the series PMOS devices may need to be made larger. Larger transistors can increase area and capacitance, which can affect power and delay.
+4. **Performance:** NAND gates often have better delay characteristics in CMOS because their weaker PMOS devices are not stacked in series.
+5. **Design style:** The final choice also depends on the standard-cell library, available cells, fan-in, loading, and the Boolean expression being implemented.
+6. **Application requirement:** Some logic functions naturally map better to NOR, so NOR is still used where it gives a cleaner or faster implementation.
+
+**Final comparison:**
+
+| Point | NAND | NOR |
+|---|---|---|
+| Logic power | Universal | Universal |
+| CMOS PMOS network | Parallel | Series |
+| CMOS NMOS network | Series | Parallel |
+| Practical preference | Often preferred | Used when suitable |
+| Reason | Usually better speed/area in CMOS | Can be useful depending on logic/library |
+
+**Conclusion:**
+
+The interview-safe answer is: NAND and NOR are logically equally powerful, but NAND is usually preferred in CMOS implementation because it is often faster and more area-efficient. However, the best gate still depends on the circuit, power, performance, and standard-cell library.
+
+**Speak like this:**
+
+"Both NAND and NOR are universal gates, so logically both can implement any Boolean function. But in CMOS design, NAND is usually preferred. The reason is transistor implementation: in NAND, PMOS transistors are in parallel, while in NOR, PMOS transistors are in series. Since PMOS devices are weaker than NMOS devices, series PMOS makes NOR slower or larger. So NAND often gives better speed and area. Still, the final choice depends on the Boolean function, standard-cell library, power, delay, and application requirement."
+
+[Back to index](./index.md)
+
+<a id="q26"></a>
+## 26. Explain delay models in digital circuits and gates.
+
+**Written answer:**
+
+**Definition to remember:** A delay model describes how much time a signal transition takes to propagate through a gate, wire, combinational circuit, or flip-flop. [[S4]](#s4)
+
+In real digital circuits, outputs do not change instantly when inputs change. Gates have internal transistor delay, wires have resistance and capacitance, and flip-flops have clock-to-Q delay. Delay modeling is used to estimate whether a circuit can meet timing.
+
+**Important delay terms:**
+
+1. **Propagation delay:** Maximum time after an input change for the output to become valid. This is used for setup timing.
+2. **Contamination delay:** Minimum time after an input change before the output may start changing. This is used for hold timing.
+3. **Rise delay:** Delay when output changes from `0` to `1`.
+4. **Fall delay:** Delay when output changes from `1` to `0`.
+5. **Gate delay:** Delay through a logic gate.
+6. **Interconnect delay:** Delay caused by wires, routing, capacitance, and load.
+7. **Clock-to-Q delay:** Time from active clock edge to valid flip-flop output.
+
+**Timing equations:**
+
+For setup timing:
+
+```text
+clock-to-Q delay + combinational propagation delay + setup time <= clock period
+```
+
+For hold timing:
+
+```text
+clock-to-Q contamination delay + combinational contamination delay >= hold time
+```
+
+**Delay in Verilog gate-level modeling:**
+
+Verilog allows delay modeling using `#` delay. [[S5]](#s5)
+
+```verilog
+and #5 g1 (y, a, b);
+```
+
+This means the AND gate output is modeled as changing 5 time units after the input change.
+
+Verilog can also model rise and fall delay separately:
+
+```verilog
+buf #(3, 5) b1 (y, a);  // rise delay = 3, fall delay = 5
+```
+
+**Speak like this:**
+
+"Delay means a signal does not pass through hardware instantly. Propagation delay is the maximum time for output to become valid after an input change, and contamination delay is the minimum time before output can start changing. Propagation delay is important for setup timing, and contamination delay is important for hold timing. In Verilog gate-level modeling, we can write delays using `#`, but in real RTL design, actual delays are calculated by synthesis and static timing analysis."
+
+[Back to index](./index.md)
+
+<a id="q27"></a>
+## 27. Draw a MUX using NAND gates.
+
+**Written answer:**
+
+**Definition to remember:** A multiplexer, or MUX, is a combinational circuit that selects one input from multiple inputs and passes it to the output using select lines. [[S7]](#s7)
+
+For a 2:1 MUX:
+
+```text
+Y = S'I0 + SI1
+```
+
+Using only NAND gates, we implement this by making the complemented product terms and then applying De Morgan's theorem.
+
+**NAND-only implementation:**
+
+```text
+nS = NAND(S, S)       = S'
+n0 = NAND(I0, nS)     = (I0 . S')'
+n1 = NAND(I1, S)      = (I1 . S)'
+Y  = NAND(n0, n1)     = I0S' + I1S
+```
+
+So a 2:1 MUX can be made using four NAND gates.
+
+**Connection diagram:**
+
+```text
+S ----+---- NAND ---- nS
+      |      ^
+      +------+
+
+I0 -------- NAND ---- n0
+nS --------/
+
+I1 -------- NAND ---- n1
+S ---------/
+
+n0 -------- NAND ---- Y
+n1 --------/
+```
+
+**Verilog structural code:**
+
+```verilog
+module mux2_nand (
+    input  i0,
+    input  i1,
+    input  s,
+    output y
+);
+wire ns;
+wire n0;
+wire n1;
+
+nand g0 (ns, s, s);
+nand g1 (n0, i0, ns);
+nand g2 (n1, i1, s);
+nand g3 (y, n0, n1);
+
+endmodule
+```
+
+**Speak like this:**
+
+"A 2:1 MUX equation is `Y = S'I0 + SI1`. To implement it with NAND gates, first I generate `S'` using a NAND as an inverter. Then I create `(I0S')'` and `(I1S)'` using two NAND gates. Finally, I NAND those two signals together. By De Morgan's theorem, the result becomes `I0S' + I1S`, which is the required MUX output."
+
+[Back to index](./index.md)
+
+<a id="q28"></a>
+## 28. Comparison between BJT and MOSFET.
+
+**Written answer:**
+
+**Definition to remember:** In interview terms, a BJT is usually treated as a current-controlled device because a small base current controls a larger collector current. A MOSFET is usually treated as a voltage-controlled device because the gate-to-source voltage controls the channel and drain current. [[S22]](#s22)
+
+| Point | BJT | MOSFET |
+|---|---|---|
+| Full form | Bipolar Junction Transistor | Metal-Oxide-Semiconductor Field-Effect Transistor |
+| Terminals | Base, emitter, collector | Gate, source, drain |
+| Control | Current-controlled device | Voltage-controlled device |
+| Input | Base current controls collector current | Gate voltage controls drain current |
+| Input impedance | Lower input impedance | Very high input impedance |
+| Carrier type | Bipolar device, uses electrons and holes | Unipolar device, mainly one carrier type |
+| Drive power | Needs continuous base current | Gate needs very little DC current ideally |
+| Speed/switching | Can have charge-storage delay | Often better for fast digital switching |
+| Common use | Analog amplification, current gain, some switching | CMOS logic, power switching, digital ICs |
+| Power applications | Used, but less common in modern power switching | Very common for high-power/high-speed switching |
+
+**Important points:**
+
+1. A BJT has three terminals: base, emitter, and collector.
+2. A MOSFET has three main terminals: gate, source, and drain. It may also have a body/substrate terminal.
+3. BJT operation depends on current at the base terminal.
+4. MOSFET operation depends mainly on voltage at the insulated gate electrode.
+5. MOSFETs are more common in modern digital circuits because CMOS gives high density and low static power.
+6. BJTs are still useful where high current gain, analog amplification, or certain analog characteristics are needed.
+
+**Speak like this:**
+
+"A BJT is a bipolar device with base, emitter, and collector terminals. In normal interview language, we treat it as current controlled because a small base current controls collector current. A MOSFET has gate, source, and drain terminals, and we treat it as voltage controlled because gate voltage controls the channel. MOSFETs have very high input impedance and are widely used in CMOS digital circuits and power switching. BJTs are still useful in analog amplification and current-gain applications."
+
+[Back to index](./index.md)
+
+<a id="q29"></a>
+## 29. What gates are used in Verilog? What is a universal gate? Draw OR/NOR truth table and design NOR using OR/AND.
+
+**Written answer:**
+
+**Definition to remember:** Verilog gate primitives are built-in gate-level keywords used to model logic gates directly. Examples include `and`, `or`, `nand`, `nor`, `xor`, `xnor`, `not`, and `buf`. [[S5]](#s5)
+
+**Common gates used in Verilog:**
+
+```text
+and, or, nand, nor, xor, xnor, not, buf
+```
+
+Verilog also has tri-state gate primitives such as:
+
+```text
+bufif0, bufif1, notif0, notif1
+```
+
+**Universal gate:**
+
+A universal gate is a gate that can be used by itself to build all other basic gates. NAND and NOR are universal gates because we can implement NOT, AND, OR, and any Boolean expression using only NAND gates or only NOR gates. [[S9]](#s9)
+
+**OR and NOR truth table:**
+
+| A | B | OR = A + B | NOR = (A + B)' |
+|---:|---:|---:|---:|
+| 0 | 0 | 0 | 1 |
+| 0 | 1 | 1 | 0 |
+| 1 | 0 | 1 | 0 |
+| 1 | 1 | 1 | 0 |
+
+**Design NOR using OR gate:**
+
+NOR means OR followed by NOT.
+
+```text
+Y = (A + B)'
+```
+
+```verilog
+module nor_using_or_not (
+    input  a,
+    input  b,
+    output y
+);
+wire or_out;
+
+or  g1 (or_out, a, b);
+not g2 (y, or_out);
+
+endmodule
+```
+
+**Design NOR using AND gate also:**
+
+Using De Morgan's theorem:
+
+```text
+(A + B)' = A' . B'
+```
+
+So we can invert both inputs and then use AND.
+
+```verilog
+module nor_using_and_not (
+    input  a,
+    input  b,
+    output y
+);
+wire na;
+wire nb;
+
+not g1 (na, a);
+not g2 (nb, b);
+and g3 (y, na, nb);
+
+endmodule
+```
+
+**Speak like this:**
+
+"In Verilog, common gate primitives are `and`, `or`, `nand`, `nor`, `xor`, `xnor`, `not`, and `buf`. A universal gate is a gate from which we can build all other gates. NAND and NOR are universal gates. For OR, output is 1 when at least one input is 1. NOR is the complement of OR, so it is 1 only when both inputs are 0. To design NOR using OR, I use OR followed by NOT. Using De Morgan's theorem, I can also design NOR as `A'B'`, meaning invert both inputs and then AND them."
+
+[Back to index](./index.md)
+
+<a id="q30"></a>
+## 30. Difference between sequential and combinational circuit.
+
+**Written answer:**
+
+**Definition to remember:** A combinational circuit output depends only on the present input values. A sequential circuit output depends on present inputs and stored state, so it has memory. [[S2]](#s2)
+
+| Point | Combinational circuit | Sequential circuit |
+|---|---|---|
+| Output depends on | Present inputs only | Present inputs and previous stored state |
+| Memory | No memory element | Has memory element |
+| Clock requirement | Usually no clock needed | Usually controlled by clock or enable |
+| Feedback | Normally no feedback for storage | Feedback or storage element is present |
+| Timing | Mainly propagation delay matters | Setup time, hold time, clock-to-Q, and clock period matter |
+| Basic building blocks | Gates, adders, muxes, encoders, decoders | Latches, flip-flops, registers, counters, FSMs |
+| Example | Half adder, full adder, MUX | Counter, register, sequence detector, FSM |
+
+**Simple example:**
+
+```text
+Combinational:
+Y = A + B
+Output changes only according to current A and B.
+
+Sequential:
+Q_next = D at clock edge
+Output depends on clocked storage, not only current input.
+```
+
+**Important point:**
+
+A sequential circuit is usually built by combining combinational logic with memory elements. The combinational logic calculates next state and output, and the memory element stores the state.
+
+**Speak like this:**
+
+"A combinational circuit has no memory. Its output depends only on the present inputs, like a mux or adder. A sequential circuit has memory, so its output depends on the present inputs and the stored state. Examples are flip-flops, counters, registers, and FSMs. In sequential circuits we also care about clock timing, setup time, hold time, and clock-to-Q delay."
+
+[Back to index](./index.md)
+
+<a id="q31"></a>
+## 31. Draw a state machine of Mealy overlapping and non-overlapping sequences.
+
+**Written answer:**
+
+**Definition to remember:** In a Mealy machine, the output depends on the present state and the present input. For a sequence detector, the FSM moves through states that represent how much of the target sequence has already been matched. [[S2]](#s2) [[S23]](#s23)
+
+Here I am using the common interview example sequence:
+
+```text
+Target sequence = 1010
+Transition label = input/output
+```
+
+**State meaning:**
+
+| State | Meaning |
+|---|---|
+| S0 | No useful match yet |
+| S1 | Matched `1` |
+| S2 | Matched `10` |
+| S3 | Matched `101` |
+
+### Overlapping Mealy sequence detector for 1010
+
+In overlapping detection, after detecting `1010`, the last `10` can become the beginning of the next possible sequence. So after final detection, the FSM goes to `S2`.
+
+**Transition table:**
+
+| Present state | Input 0 | Input 1 |
+|---|---|---|
+| S0 | S0 / 0 | S1 / 0 |
+| S1 | S2 / 0 | S1 / 0 |
+| S2 | S0 / 0 | S3 / 0 |
+| S3 | S2 / 1 | S1 / 0 |
+
+**ASCII state diagram:**
+
+```text
+S0 --1/0--> S1 --0/0--> S2 --1/0--> S3 --0/1--> S2
+^           |           |                         |
+|           |1/0        |0/0                      |1/0
++----0/0---+           +-----------0/0-----------+--> S1
+```
+
+The important transition is:
+
+```text
+S3 --0/1--> S2
+```
+
+That means sequence `1010` is detected, output becomes `1`, and the ending `10` is reused for overlap.
+
+### Non-overlapping Mealy sequence detector for 1010
+
+In non-overlapping detection, after detecting one full `1010`, the FSM resets to the initial state and starts fresh.
+
+**Transition table:**
+
+| Present state | Input 0 | Input 1 |
+|---|---|---|
+| S0 | S0 / 0 | S1 / 0 |
+| S1 | S2 / 0 | S1 / 0 |
+| S2 | S0 / 0 | S3 / 0 |
+| S3 | S0 / 1 | S1 / 0 |
+
+**ASCII state diagram:**
+
+```text
+S0 --1/0--> S1 --0/0--> S2 --1/0--> S3 --0/1--> S0
+^           |           |                         |
+|           |1/0        |0/0                      |1/0
++----0/0---+           +-----------0/0-----------+--> S1
+```
+
+The important transition is:
+
+```text
+S3 --0/1--> S0
+```
+
+That means sequence `1010` is detected, output becomes `1`, and the machine resets to start detecting a new sequence.
+
+**Speak like this:**
+
+"For a Mealy sequence detector, outputs are written on transitions because output depends on state and input. For sequence `1010`, the states represent partial matches: no match, `1`, `10`, and `101`. In overlapping detection, when the final `0` comes from state `S3`, output becomes `1` and the machine goes to `S2`, because the ending `10` can start the next sequence. In non-overlapping detection, after the final `0`, output becomes `1` but the machine goes back to `S0`, because we do not reuse any bits."
+
+[Back to index](./index.md)
+
+<a id="q32"></a>
+## 32. Difference between microprocessor and microcontroller.
+
+**Written answer:**
+
+**Definition to remember:** A microprocessor is mainly a CPU on a chip and normally needs external memory and I/O to make a full system. A microcontroller integrates a CPU, memory, and peripherals on one chip for embedded control applications. [[S24]](#s24)
+
+| Point | Microprocessor | Microcontroller |
+|---|---|---|
+| Basic idea | CPU-focused chip | Small computer/control system on one chip |
+| Main components | CPU mainly | CPU + memory + I/O + timers/peripherals |
+| External components | Needs external RAM, ROM/flash, and I/O support | Many required blocks are already on chip |
+| Application | General-purpose computing | Embedded and dedicated control |
+| System size | Usually larger system | Usually compact system |
+| Power | Usually higher system power | Usually lower power for embedded tasks |
+| Cost | Higher total system cost because external chips are needed | Lower for small embedded systems |
+| Performance focus | High processing power and flexibility | Control, real-time response, low power, low cost |
+| Examples | PC/laptop processors, application processors | 8051, AVR, PIC, ARM Cortex-M MCUs |
+| Used in | Computers, phones, high-end OS-based systems | Washing machines, remotes, sensors, motor control, IoT |
+
+**Interview nuance:**
+
+Modern chips can blur the boundary because many application processors include memory controllers and peripherals. But for interview basics, use the traditional distinction: microprocessor means CPU-centric; microcontroller means CPU plus memory and peripherals integrated for embedded control.
+
+**Speak like this:**
+
+"A microprocessor is mainly a CPU, so memory and I/O are generally connected externally to build a complete system. It is used where high processing power and flexibility are needed, like computers. A microcontroller integrates CPU, memory, I/O ports, timers, and peripherals on a single chip. So it is compact, low cost, and low power, which makes it suitable for embedded applications like washing machines, sensors, and control systems."
+
+[Back to index](./index.md)
+
+<a id="q33"></a>
+## 33. What are stack pointer and program counter?
+
+**Written answer:**
+
+**Program counter definition:** The program counter, or PC, is a processor register that holds the address of the next instruction to be fetched or executed. It is also called the instruction pointer in some architectures. [[S25]](#s25)
+
+**Stack pointer definition:** The stack pointer, or SP, is a processor register that points to the top of the stack, or to the next stack location depending on the processor convention. The stack is used for function calls, return addresses, local variables, saved registers, and interrupts. [[S26]](#s26)
+
+| Point | Program Counter (PC) | Stack Pointer (SP) |
+|---|---|---|
+| Stores | Address of next instruction | Address of top/current stack location |
+| Main use | Controls instruction flow | Manages stack memory |
+| Changes during | Normal instruction execution, branch, jump, call, interrupt, return | Push, pop, function call, interrupt, return |
+| Related to | Fetch-decode-execute cycle | Function calls and temporary storage |
+| Example | After branch, PC gets target address | On push, SP moves and data is stored on stack |
+
+**Simple flow:**
+
+```text
+PC -> tells CPU which instruction to execute next.
+SP -> tells CPU where stack data is stored.
+```
+
+**Speak like this:**
+
+"The program counter stores the address of the next instruction, so it controls program flow. During normal execution it increments, and during jump, branch, call, or interrupt it loads a new address. The stack pointer points to the top of the stack. It changes during push, pop, function calls, returns, and interrupts. So PC is about instruction flow, while SP is about stack memory management."
+
+[Back to index](./index.md)
+
+<a id="q34"></a>
+## 34. Difference between RISC and CISC processor.
+
+**Written answer:**
+
+**Definition to remember:** RISC means Reduced Instruction Set Computer, where the instruction set is simpler and usually optimized for fast pipelined execution. CISC means Complex Instruction Set Computer, where the instruction set has more complex instructions and more addressing modes. [[S27]](#s27)
+
+| Point | RISC | CISC |
+|---|---|---|
+| Full form | Reduced Instruction Set Computer | Complex Instruction Set Computer |
+| Instruction type | Simple instructions | Complex instructions |
+| Instruction length | Usually fixed length | Often variable length |
+| Addressing modes | Fewer addressing modes | More addressing modes |
+| Memory access | Usually load-store: only load/store access memory | Many instructions can directly operate on memory |
+| Execution | Often designed for one or few cycles per instruction | Some instructions may take multiple cycles |
+| Hardware | Simpler control logic | More complex control logic, often microcode historically |
+| Compiler role | Compiler does more work | Hardware can do more complex operations |
+| Pipelining | Easier because instructions are regular | Harder because instruction length and behavior vary |
+| Code size | Can be larger because more instructions are needed | Can be smaller because one instruction may do more work |
+| Examples | ARM, MIPS, RISC-V, SPARC | x86, VAX, 8051 style CISC examples |
+
+**Important nuance:**
+
+Modern processors are not always purely RISC or purely CISC internally. For example, modern x86 processors may translate complex instructions into simpler internal micro-operations. But for interviews, the table above is the standard conceptual difference.
+
+**Speak like this:**
+
+"RISC uses a smaller and simpler instruction set, usually with fixed-length instructions and load-store architecture. That makes decoding and pipelining easier. CISC has more complex instructions, variable instruction lengths, and more addressing modes. A single CISC instruction can do more work, but it may take more cycles and can make hardware more complex. Modern CPUs blur the boundary, but conceptually RISC favors simpler instructions and speed, while CISC favors richer instructions and compact code."
+
+[Back to index](./index.md)
+
+<a id="q35"></a>
+## 35. What is tri-state logic?
+
+**Written answer:**
+
+**Definition to remember:** Tri-state logic has three output states: logic `0`, logic `1`, and high impedance `Z`. In high-impedance state, the output is effectively disconnected from the circuit. [[S28]](#s28)
+
+A normal digital output drives either `0` or `1`. A tri-state output can also go to `Z`, meaning it does not actively drive the line.
+
+**Tri-state buffer behavior:**
+
+| Enable | Input | Output |
+|---:|---:|---|
+| 0 | X | Z |
+| 1 | 0 | 0 |
+| 1 | 1 | 1 |
+
+**Why it is used:**
+
+1. It allows multiple devices to share the same bus.
+2. Only one device should drive the bus at a time.
+3. Other devices stay in high-impedance state so they do not fight the active driver.
+
+**Important warning:**
+
+If two outputs drive the same bus at the same time and one drives `1` while another drives `0`, bus contention happens. That can cause wrong logic and may damage hardware.
+
+**Verilog example:**
+
+```verilog
+assign bus = enable ? data : 1'bz;
+```
+
+**Speak like this:**
+
+"Tri-state logic means the output can be `0`, `1`, or high impedance `Z`. High impedance means the output is not driving the line, almost like it is disconnected. This is useful for shared buses because only one device should drive the bus at a time, while others remain in `Z`. If two devices drive opposite values at the same time, bus contention can occur."
+
+[Back to index](./index.md)
+
+<a id="q36"></a>
+## 36. Implement XOR logic using NOR gates.
+
+**Written answer:**
+
+**Definition to remember:** NOR is a universal gate, so any Boolean function, including XOR, can be implemented using only NOR gates. [[S9]](#s9) [[S29]](#s29)
+
+XOR output is `1` when the two inputs are different.
+
+```text
+Y = A xor B = A'B + AB'
+```
+
+**Truth table:**
+
+| A | B | XOR |
+|---:|---:|---:|
+| 0 | 0 | 0 |
+| 0 | 1 | 1 |
+| 1 | 0 | 1 |
+| 1 | 1 | 0 |
+
+**NOR-only implementation using 5 NOR gates:**
+
+```text
+n1 = NOR(A, B)       = (A + B)'
+n2 = NOR(A, n1)      = A'B
+n3 = NOR(B, n1)      = AB'
+n4 = NOR(n2, n3)     = (A'B + AB')'   // XNOR
+Y  = NOR(n4, n4)     = A'B + AB'      // XOR
+```
+
+**ASCII diagram:**
+
+```text
+A ----+---- NOR ---- n1
+B ----+
+
+A ----+---- NOR ---- n2
+n1 ---+
+
+B ----+---- NOR ---- n3
+n1 ---+
+
+n2 ---+---- NOR ---- n4
+n3 ---+
+
+n4 ---+---- NOR ---- Y
+n4 ---+
+```
+
+**Verilog structural code:**
+
+```verilog
+module xor_using_nor (
+    input  a,
+    input  b,
+    output y
+);
+wire n1;
+wire n2;
+wire n3;
+wire n4;
+
+nor g1 (n1, a, b);
+nor g2 (n2, a, n1);
+nor g3 (n3, b, n1);
+nor g4 (n4, n2, n3);
+nor g5 (y, n4, n4);
+
+endmodule
+```
+
+**Speak like this:**
+
+"Since NOR is a universal gate, XOR can be built using only NOR gates. I first generate `n1 = (A+B)'`. Then using `A NOR n1` and `B NOR n1`, I create the two XOR product terms `A'B` and `AB'`. NORing those terms gives XNOR, and one final NOR used as an inverter gives XOR."
+
+[Back to index](./index.md)
+
+<a id="q37"></a>
+## 37. What are FFT and DFT?
+
+**Written answer:**
+
+**DFT definition:** The Discrete Fourier Transform converts a finite-length discrete-time signal from the time domain into frequency-domain components. It tells which frequencies are present in the sampled signal.
+
+**FFT definition:** The Fast Fourier Transform is an efficient algorithm used to compute the DFT faster. [[S30]](#s30)
+
+| Point | DFT | FFT |
+|---|---|---|
+| Full form | Discrete Fourier Transform | Fast Fourier Transform |
+| Meaning | Mathematical transform | Algorithm to compute DFT |
+| Purpose | Converts samples to frequency components | Computes same DFT result efficiently |
+| Speed | Direct DFT is slow for large N | Much faster for large N |
+| Complexity | About `O(N^2)` | About `O(N log N)` |
+| Output | Frequency-domain samples | Same frequency-domain samples |
+| Use | Signal analysis concept | Practical implementation in DSP/software/hardware |
+
+**Simple idea:**
+
+```text
+DFT tells what frequencies are inside the signal.
+FFT is the fast method used to calculate the DFT.
+```
+
+**Example:**
+
+If we record a sound signal using a microphone, the time-domain samples show amplitude versus time. DFT/FFT helps convert that into frequency information, such as bass, mid, and high-frequency components.
+
+**Speak like this:**
+
+"DFT is the mathematical transform that converts discrete time-domain samples into frequency-domain components. FFT is not a different transform; it is a fast algorithm to compute the same DFT result. Direct DFT takes around `N^2` operations, while FFT takes around `N log N`, so FFT is used practically in DSP, communication, audio, image processing, and spectrum analysis."
+
+[Back to index](./index.md)
+
+<a id="q38"></a>
+## 38. Explain Nyquist stability criterion.
+
+**Written answer:**
+
+**Definition to remember:** Nyquist stability criterion is a graphical method used in control systems to determine closed-loop stability from the open-loop frequency response, without directly solving for all closed-loop poles. [[S31]](#s31)
+
+For a feedback system with loop gain:
+
+```text
+L(s) = G(s)H(s)
+```
+
+The Nyquist plot of `L(s)` is checked around the critical point:
+
+```text
+-1 + j0
+```
+
+**Nyquist formula:**
+
+Using the common convention where clockwise encirclements of `-1 + j0` are positive:
+
+```text
+Z = N + P
+```
+
+Where:
+
+| Symbol | Meaning |
+|---|---|
+| `Z` | Number of right-half-plane closed-loop poles |
+| `N` | Number of clockwise encirclements of `-1 + j0` by the Nyquist plot |
+| `P` | Number of right-half-plane open-loop poles |
+
+For closed-loop stability:
+
+```text
+Z = 0
+```
+
+That means the closed-loop system should have no right-half-plane poles.
+
+**Special case:**
+
+If the open-loop system has no right-half-plane poles:
+
+```text
+P = 0
+```
+
+Then for stability:
+
+```text
+N = 0
+```
+
+So the Nyquist plot should not encircle the point `-1 + j0`.
+
+**Why it is useful:**
+
+1. It predicts closed-loop stability from open-loop frequency response.
+2. It is useful when directly finding closed-loop poles is difficult.
+3. It also gives insight into gain margin and phase margin.
+
+**Speak like this:**
+
+"Nyquist criterion checks closed-loop stability using the open-loop frequency response. We draw the Nyquist plot of `G(s)H(s)` and observe encirclements of the critical point `-1 + j0`. With clockwise encirclements taken as positive, the relation is `Z = N + P`, where `Z` is right-half-plane closed-loop poles, `N` is encirclements, and `P` is right-half-plane open-loop poles. For stability, `Z` must be zero. So if the open-loop system is stable, the Nyquist plot should not encircle `-1 + j0`."
+
+[Back to index](./index.md)
+
 <a id="sources"></a>
 ## Source References
 
@@ -984,3 +1712,33 @@ If `J = K = 1`, the flip-flop toggles. But in a master-slave JK flip-flop, it to
 
 <a id="s21"></a>
 **S21. AMD Vivado Synthesis Guide UG901, Flip-Flops and Registers Inference:** https://docs.amd.com/r/en-US/ug901-vivado-synthesis/Flip-Flops-and-Registers-Inference
+
+<a id="s22"></a>
+**S22. Toshiba Electronic Devices, Comparison of Transistors by Structure:** https://toshiba.semicon-storage.com/us/semiconductor/knowledge/e-learning/discrete/chap3/chap3-22.html
+
+<a id="s23"></a>
+**S23. Yue Guo, Sequence Detector 1010 Moore Machine and Mealy Machine:** https://yue-guo.com/2019/03/19/sequence-detector-1010-moore-machine-mealy-machine-overlapping-non-overlapping/
+
+<a id="s24"></a>
+**S24. IBM Think, Microcontroller vs. Microprocessor:** https://www.ibm.com/think/topics/microcontroller-vs-microprocessor
+
+<a id="s25"></a>
+**S25. TechTarget, Program Counter:** https://www.techtarget.com/whatis/definition/program-counter
+
+<a id="s26"></a>
+**S26. TechTarget, Stack Pointer:** https://www.techtarget.com/whatis/definition/stack-pointer
+
+<a id="s27"></a>
+**S27. Cornell CS3410, RISC and CISC Lecture Notes:** https://www.cs.cornell.edu/courses/cs3410/2010sp/lecture/topic13-risc-cisc-i.pdf
+
+<a id="s28"></a>
+**S28. Analog Devices, Three-State Logic:** https://www.analog.com/en/resources/glossary/three_state_logic.html
+
+<a id="s29"></a>
+**S29. GeeksforGeeks, Implementation of XOR Gate from NOR Gate:** https://www.geeksforgeeks.org/digital-logic/implementation-of-xor-gate-from-nor-gate/
+
+<a id="s30"></a>
+**S30. Analog Devices, Fast Fourier Transform:** https://www.analog.com/en/resources/glossary/fast_fourier_transform.html
+
+<a id="s31"></a>
+**S31. Electrical4U, Nyquist Stability Criterion:** https://www.electrical4u.com/nyquist-stability-criterion/
