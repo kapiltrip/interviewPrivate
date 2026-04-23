@@ -1647,6 +1647,1122 @@ So the Nyquist plot should not encircle the point `-1 + j0`.
 
 [Back to index](./index.md)
 
+<a id="q39"></a>
+## 39. What is ADC?
+
+**Written answer:**
+
+**Definition to remember:** An ADC, or Analog-to-Digital Converter, converts a continuous analog signal into a digital number that a digital system can store, process, or transmit. [[S32]](#s32)
+
+An analog signal can have any value within a range, but a digital system works with discrete binary values. So ADC conversion mainly involves three ideas:
+
+1. **Sampling:** The analog signal is measured at discrete time instants.
+2. **Quantization:** Each sampled value is mapped to the nearest available digital level.
+3. **Encoding:** The quantized level is represented as a binary code.
+
+**Simple ADC block:**
+
+```text
+Analog input -> Sample/Hold -> Quantizer -> Encoder -> Digital output
+```
+
+**Important terms:**
+
+| Term | Meaning |
+|---|---|
+| Resolution | Number of bits in the ADC output |
+| Sampling rate | How many samples are taken per second |
+| Quantization step | Smallest voltage difference represented by one digital step |
+| Reference voltage | Voltage range used for conversion |
+| Quantization error | Difference between actual analog value and represented digital value |
+
+**Resolution example:**
+
+For an `N`-bit ADC:
+
+```text
+Number of levels = 2^N
+```
+
+For an 8-bit ADC:
+
+```text
+Number of levels = 2^8 = 256
+```
+
+If the reference range is `0 V` to `5 V`:
+
+```text
+Step size = 5 V / 256 = 19.53 mV approximately
+```
+
+**Speak like this:**
+
+"ADC stands for Analog-to-Digital Converter. It converts a continuous analog signal into a digital binary value. The main steps are sampling, quantization, and encoding. Sampling measures the signal at discrete time instants, quantization maps each sample to the nearest digital level, and encoding converts that level into binary. Resolution tells how many digital levels are available. For example, an 8-bit ADC has 256 levels."
+
+[Back to index](./index.md)
+
+<a id="q40"></a>
+## 40. Explain the communication channel from microphone analog input to receiver output.
+
+**Written answer:**
+
+**Definition to remember:** A communication system transfers information from a source to a destination through a transmitter, channel, and receiver. The channel is the medium or path through which the signal travels, and noise/interference can affect it. [[S33]](#s33)
+
+For microphone audio, the source signal is analog sound pressure. The microphone converts sound into an electrical analog signal. If we transmit it digitally, the signal is converted to digital at the transmitter and converted back to analog at the receiver.
+
+**Block diagram:**
+
+```text
+Speaker voice
+    |
+Microphone / input transducer
+    |
+Analog audio signal
+    |
+Pre-amplifier + filter
+    |
+ADC
+    |
+Source encoding / compression
+    |
+Channel encoding / error protection
+    |
+Modulation / transmitter
+    |
+Communication channel + noise
+    |
+Receiver / demodulation
+    |
+Channel decoding
+    |
+Source decoding
+    |
+DAC
+    |
+Amplifier + speaker
+    |
+Received sound
+```
+
+**Step-by-step explanation:**
+
+1. **Microphone:** Converts sound waves into an analog electrical signal.
+2. **Pre-amplifier:** Increases the weak microphone signal.
+3. **Anti-aliasing filter:** Removes high-frequency components before sampling.
+4. **ADC:** Converts analog samples into digital binary values.
+5. **Source encoder:** Compresses or formats the data, for example audio coding.
+6. **Channel encoder:** Adds redundancy so errors caused by noise can be detected or corrected.
+7. **Modulator/transmitter:** Converts digital data into a signal suitable for the channel.
+8. **Channel:** The physical or wireless medium. It may add noise, attenuation, distortion, or interference.
+9. **Receiver/demodulator:** Recovers digital data from the received signal.
+10. **Channel decoder:** Detects or corrects transmission errors.
+11. **Source decoder:** Reconstructs the digital audio samples.
+12. **DAC:** Converts digital samples back into an analog waveform.
+13. **Speaker/amplifier:** Converts the analog electrical signal back into sound.
+
+**Speak like this:**
+
+"At the transmitter, the microphone converts sound into an analog voltage. That signal is amplified and filtered, then an ADC converts it into digital samples. The digital data may be compressed, encoded for error protection, and modulated for transmission. The channel carries the signal but can add noise and distortion. At the receiver, demodulation and decoding recover the digital data, a DAC converts it back to analog, and the speaker converts it back into sound."
+
+[Back to index](./index.md)
+
+<a id="q41"></a>
+## 41. Draw CMOS diagram of AND and OR with inverter, NAND, and NOR.
+
+**Written answer:**
+
+**Definition to remember:** In static CMOS logic, the pull-up network is made using PMOS transistors connected to `VDD`, and the pull-down network is made using NMOS transistors connected to ground. The PMOS and NMOS networks are complementary. [[S34]](#s34)
+
+### CMOS inverter
+
+```text
+          VDD
+           |
+        PMOS gate=A
+           |
+           +------ Y = A'
+           |
+        NMOS gate=A
+           |
+          GND
+```
+
+When `A = 0`, PMOS is ON and NMOS is OFF, so `Y = 1`.
+When `A = 1`, PMOS is OFF and NMOS is ON, so `Y = 0`.
+
+### CMOS NAND gate
+
+For NAND:
+
+```text
+Y = (A . B)'
+```
+
+PMOS transistors are in parallel. NMOS transistors are in series.
+
+```text
+             VDD
+            /   \
+      PMOS A     PMOS B
+            \   /
+             +-------- Y = (A.B)'
+             |
+          NMOS A
+             |
+          NMOS B
+             |
+            GND
+```
+
+### CMOS AND gate
+
+AND is made using NAND followed by inverter:
+
+```text
+A, B -> CMOS NAND -> inverter -> Y = A.B
+```
+
+```text
+Y_nand = (A.B)'
+Y      = ((A.B)')' = A.B
+```
+
+### CMOS NOR gate
+
+For NOR:
+
+```text
+Y = (A + B)'
+```
+
+PMOS transistors are in series. NMOS transistors are in parallel.
+
+```text
+             VDD
+              |
+           PMOS A
+              |
+           PMOS B
+              |
+              +-------- Y = (A+B)'
+             / \
+       NMOS A   NMOS B
+             \ /
+             GND
+```
+
+### CMOS OR gate
+
+OR is made using NOR followed by inverter:
+
+```text
+A, B -> CMOS NOR -> inverter -> Y = A+B
+```
+
+```text
+Y_nor = (A+B)'
+Y     = ((A+B)')' = A+B
+```
+
+**Why AND and OR use inverter:**
+
+Basic static CMOS naturally gives inverting gates like NAND and NOR. So non-inverting gates like AND and OR are commonly made by adding an inverter after NAND or NOR.
+
+**Speak like this:**
+
+"In CMOS, PMOS forms the pull-up network to `VDD`, and NMOS forms the pull-down network to ground. A NAND gate has PMOS in parallel and NMOS in series. An AND gate is NAND followed by an inverter. A NOR gate has PMOS in series and NMOS in parallel. An OR gate is NOR followed by an inverter. So NAND and NOR are the basic CMOS structures, while AND and OR are obtained by adding inversion."
+
+[Back to index](./index.md)
+
+<a id="q42"></a>
+## 42. Draw NMOS diagram, explain working, and explain characteristic regions.
+
+**Written answer:**
+
+**Definition to remember:** An NMOS transistor is an n-channel MOSFET in which gate-to-source voltage controls formation of an n-type channel between source and drain. [[S35]](#s35)
+
+**Basic NMOS structure:**
+
+```text
+             Gate
+              |
+          +--------+
+          | oxide  |
+Drain n+  |        |  Source n+
+   D -----+        +----- S
+          p-type substrate/body
+              |
+             Body
+```
+
+**Symbol idea:**
+
+```text
+          D
+          |
+      ----|
+G ----|   |---- S
+      ----|
+```
+
+**Working:**
+
+1. The NMOS has source and drain n+ regions in a p-type substrate.
+2. The gate is insulated from the channel by oxide.
+3. When `VGS < VTH`, no strong channel forms, so the transistor is OFF.
+4. When `VGS > VTH`, an inversion channel forms under the gate.
+5. If `VDS` is applied, electrons flow from source to drain, so conventional drain current flows from drain to source.
+
+**Characteristic regions:**
+
+| Region | Condition | Behavior |
+|---|---|---|
+| Cutoff | `VGS < VTH` | Channel is not formed; `ID` is approximately zero |
+| Linear/Triode | `VGS > VTH` and `VDS < VGS - VTH` | NMOS behaves like a voltage-controlled resistor |
+| Saturation | `VGS > VTH` and `VDS >= VGS - VTH` | Channel pinches near drain; current is controlled mainly by `VGS` |
+
+**Drain characteristic graph idea:**
+
+```text
+ID
+^
+|                         VGS high
+|                    ____---------
+|               ____-
+|          ____-
+|     ____-       saturation
+|____-
+|  linear/triode
++-------------------------------> VDS
+ cutoff is near ID = 0 when VGS < VTH
+```
+
+**Use in digital logic:**
+
+In CMOS logic, NMOS is good at pulling output down to `0`. It turns ON when gate input is `1` and turns OFF when gate input is `0`.
+
+**Speak like this:**
+
+"An NMOS is an n-channel MOSFET. It has n+ source and drain regions in a p-type substrate, and the gate controls the channel through an oxide layer. When `VGS` is less than threshold voltage, it is in cutoff and no strong channel exists. When `VGS` is greater than threshold and `VDS` is small, it works in linear or triode region like a controlled resistor. When `VDS` becomes greater than or equal to `VGS - VTH`, it enters saturation, where current is mainly controlled by gate voltage."
+
+[Back to index](./index.md)
+
+<a id="q43"></a>
+## 43. What is latch-up?
+
+**Written answer:**
+
+**Definition to remember:** Latch-up in CMOS is a low-impedance path between the power supply rails caused by triggering a parasitic SCR/thyristor structure inside the CMOS device. It can cause excessive current and may damage the chip. [[S36]](#s36)
+
+**Why it happens:**
+
+In bulk CMOS, PMOS and NMOS transistors are formed in wells and substrate. Their p-n junctions can unintentionally form parasitic PNP and NPN transistors. Together, these parasitic transistors can behave like a PNPN SCR.
+
+If this parasitic SCR is triggered, it creates a strong current path:
+
+```text
+VDD -> parasitic path -> GND
+```
+
+This condition can remain even after the triggering event is removed, until power is removed or current is limited.
+
+**Causes:**
+
+1. Input/output voltage going beyond supply rails.
+2. ESD or transient spikes.
+3. Incorrect power sequencing.
+4. Large substrate or well current.
+5. Poor well/substrate contact design.
+
+**Prevention methods:**
+
+1. Use guard rings around sensitive devices.
+2. Add enough well taps and substrate contacts.
+3. Increase spacing between PMOS and NMOS devices where needed.
+4. Use proper ESD protection.
+5. Avoid violating absolute maximum ratings.
+6. Use latch-up resistant processes like SOI where applicable.
+
+**Speak like this:**
+
+"Latch-up is a dangerous condition in CMOS where parasitic PNP and NPN transistors form an SCR-like path between `VDD` and ground. If triggered by ESD, overvoltage, transients, or bad power sequencing, it creates a low-impedance path and large current can flow. This can damage the IC. We prevent it using guard rings, well taps, proper substrate contacts, spacing, ESD protection, and by avoiding input voltages beyond supply limits."
+
+[Back to index](./index.md)
+
+<a id="q44"></a>
+## 44. Difference between asynchronous and synchronous circuits.
+
+**Written answer:**
+
+**Definition to remember:** A synchronous sequential circuit changes state according to a clock signal. An asynchronous sequential circuit does not use a global clock; its state can change directly in response to input changes. [[S37]](#s37)
+
+| Point | Synchronous circuit | Asynchronous circuit |
+|---|---|---|
+| Clock | Uses a clock | No global clock |
+| State change | At clock edge or clock level | When inputs change and delays settle |
+| Timing control | Easier because timing is clock-based | Harder because timing depends on gate/path delays |
+| Design difficulty | Easier to design and verify | More difficult due to races and hazards |
+| Speed | Limited by clock period | Can be faster because it need not wait for clock |
+| Power | Clock network consumes power | No global clock power, but design is harder |
+| Memory elements | Flip-flops/registers commonly used | Latches, feedback paths, or delay elements may be used |
+| Examples | Registers, counters, synchronous FSMs | Handshake circuits, ripple counters, self-timed circuits |
+
+**Important interview point:**
+
+Most modern digital systems are mainly synchronous because clocked design is easier to analyze, simulate, synthesize, and test. Asynchronous circuits can be faster or lower power in some cases, but they are more difficult because races, hazards, and delay assumptions become critical.
+
+**Speak like this:**
+
+"A synchronous circuit uses a clock, so state changes happen at defined clock edges or clock levels. This makes design and timing analysis easier. An asynchronous circuit does not use a global clock; it reacts directly to input changes and internal delays. Because of that, asynchronous circuits can be faster in some cases, but they are harder to design due to races and hazards. In practice, most large digital systems are synchronous."
+
+[Back to index](./index.md)
+
+<a id="q45"></a>
+## 45. Write Verilog code for a 2-bit counter with circuit and truth table.
+
+**Written answer:**
+
+**Definition to remember:** A counter is a sequential circuit that advances through a fixed sequence of states on clock events. A 2-bit binary up counter counts from `00` to `11` and then rolls over to `00`. [[S21]](#s21)
+
+**2-bit up-counter sequence:**
+
+```text
+00 -> 01 -> 10 -> 11 -> 00
+```
+
+**Truth table / state table:**
+
+| Present Q1 | Present Q0 | Next Q1 | Next Q0 | Decimal |
+|---:|---:|---:|---:|---:|
+| 0 | 0 | 0 | 1 | 0 -> 1 |
+| 0 | 1 | 1 | 0 | 1 -> 2 |
+| 1 | 0 | 1 | 1 | 2 -> 3 |
+| 1 | 1 | 0 | 0 | 3 -> 0 |
+
+**Next-state equations:**
+
+```text
+Q0_next = Q0'
+Q1_next = Q1 xor Q0
+```
+
+So a 2-bit synchronous counter can be built using two D flip-flops:
+
+```text
+D0 = Q0'
+D1 = Q1 xor Q0
+```
+
+**Circuit idea:**
+
+```text
+             +---------+
+ D1 <--------| XOR     |<---- Q1
+             | Q1,Q0   |<---- Q0
+             +---------+
+                |
+             +------+
+ CLK ------->| DFF  |---- Q1
+ RST ------->|      |
+             +------+
+
+ Q0 -- NOT --> D0
+                |
+             +------+
+ CLK ------->| DFF  |---- Q0
+ RST ------->|      |
+             +------+
+```
+
+**Verilog code:**
+
+```verilog
+module counter_2bit (
+    input        clk,
+    input        rst,
+    output reg [1:0] count
+);
+
+always @(posedge clk) begin
+    if (rst)
+        count <= 2'b00;
+    else
+        count <= count + 2'b01;
+end
+
+endmodule
+```
+
+**Verilog with explicit next-state equations:**
+
+```verilog
+module counter_2bit_logic (
+    input  clk,
+    input  rst,
+    output reg q1,
+    output reg q0
+);
+wire d0;
+wire d1;
+
+assign d0 = ~q0;
+assign d1 = q1 ^ q0;
+
+always @(posedge clk) begin
+    if (rst) begin
+        q1 <= 1'b0;
+        q0 <= 1'b0;
+    end else begin
+        q1 <= d1;
+        q0 <= d0;
+    end
+end
+
+endmodule
+```
+
+**Speak like this:**
+
+"A 2-bit up counter is a synchronous sequential circuit with four states: `00`, `01`, `10`, and `11`. On every active clock edge, it moves to the next state and after `11` it rolls over to `00`. The simple RTL is `count <= count + 1`. If I draw it using D flip-flops, then `D0 = Q0'` because the LSB toggles every clock, and `D1 = Q1 xor Q0` because the MSB toggles when `Q0` is 1."
+
+[Back to index](./index.md)
+
+<a id="q46"></a>
+## 46. What is FIFO and how does it work?
+
+**Written answer:**
+
+**Definition to remember:** FIFO means First-In, First-Out. It is a queue or buffer where the first data written into it is the first data read out. [[S38]](#s38) [[S39]](#s39)
+
+In digital design, a FIFO is used to temporarily store data between two blocks. It preserves the order of data.
+
+**Basic FIFO idea:**
+
+```text
+Write side                         Read side
+---------                          ---------
+data_in -> [ FIFO memory buffer ] -> data_out
+          write pointer  read pointer
+```
+
+**How it works:**
+
+1. **Write/enqueue:** New data is written at the location pointed to by the write pointer.
+2. **Write pointer update:** After writing, the write pointer moves to the next location.
+3. **Read/dequeue:** Data is read from the location pointed to by the read pointer.
+4. **Read pointer update:** After reading, the read pointer moves to the next location.
+5. **Empty condition:** FIFO is empty when there is no unread data.
+6. **Full condition:** FIFO is full when there is no free location for new data.
+
+**FIFO status flags:**
+
+| Flag | Meaning |
+|---|---|
+| `empty` | No data available to read |
+| `full` | No space available to write |
+| `almost_empty` | Very few entries remain |
+| `almost_full` | Very few empty locations remain |
+
+**Example:**
+
+```text
+Write order: A, B, C, D
+Read order : A, B, C, D
+```
+
+The first value written, `A`, is the first value read.
+
+**Synchronous vs asynchronous FIFO:**
+
+| Type | Meaning |
+|---|---|
+| Synchronous FIFO | Read and write use the same clock |
+| Asynchronous FIFO | Read and write use different clocks |
+
+An asynchronous FIFO is commonly used for clock-domain crossing because it safely transfers data between blocks running on different clocks. In that case, pointer synchronization and full/empty logic are very important.
+
+**Speak like this:**
+
+"FIFO stands for First-In, First-Out. It works like a queue: the first data written is the first data read. Internally, a FIFO usually has memory, a write pointer, a read pointer, and status flags like full and empty. On write, data goes into the write pointer location and the write pointer increments. On read, data comes out from the read pointer location and the read pointer increments. FIFOs are useful for buffering data and for transferring data between blocks, especially in clock-domain crossing when using asynchronous FIFO."
+
+[Back to index](./index.md)
+
+<a id="q47"></a>
+## 47. Difference between behavioral code, RTL code, and testbench code.
+
+**Written answer:**
+
+**Definition to remember:** Behavioral code describes what the design should do. RTL code describes synthesizable register-transfer behavior, meaning registers and combinational logic between registers. Testbench code is verification code used to stimulate and check the design in simulation. [[S5]](#s5) [[S13]](#s13)
+
+| Point | Behavioral code | RTL code | Testbench code |
+|---|---|---|---|
+| Main purpose | Describe functionality | Describe hardware that can be synthesized | Verify the design |
+| Hardware mapping | May or may not map directly to hardware | Should map to real hardware | Usually not synthesized |
+| Used for | Modeling behavior, algorithms, simple descriptions | Actual design implementation | Simulation, checking, stimulus |
+| Typical constructs | `always`, `case`, `if`, functions, high-level logic | `always @(posedge clk)`, `always @(*)`, `assign` | `initial`, delays `#`, clock generation, tasks |
+| Synthesizable? | Depends on coding style | Yes, if written correctly | Usually no |
+| Example use | "What should the circuit do?" | "What registers and logic implement it?" | "Does the design work?" |
+
+**Behavioral code example:**
+
+This describes functionality at a high level.
+
+```verilog
+always @(*) begin
+    case (sel)
+        2'b00: y = a;
+        2'b01: y = b;
+        2'b10: y = c;
+        default: y = d;
+    endcase
+end
+```
+
+This can still be synthesizable if it uses synthesizable constructs.
+
+**RTL code example:**
+
+RTL is more directly register and transfer based.
+
+```verilog
+always @(posedge clk) begin
+    if (rst)
+        q <= 1'b0;
+    else
+        q <= d;
+end
+
+assign y = q & enable;
+```
+
+Here, `q` clearly infers a flip-flop, and `y` is combinational logic from the register output.
+
+**Testbench code example:**
+
+```verilog
+initial begin
+    clk = 1'b0;
+    forever #5 clk = ~clk;
+end
+
+initial begin
+    rst = 1'b1;
+    d   = 1'b0;
+    #20 rst = 1'b0;
+    #10 d = 1'b1;
+    #10 d = 1'b0;
+    #50 $finish;
+end
+```
+
+This is for simulation only. The `#` delays and `$finish` are not normal synthesizable RTL design constructs.
+
+**How to identify them quickly:**
+
+1. If it uses real clocked registers and synthesizable combinational logic, it is RTL.
+2. If it uses delays, random stimulus, `$display`, `$finish`, or clock generation for simulation, it is testbench.
+3. If it describes function at a high level, it is behavioral. It may be synthesizable or non-synthesizable depending on the constructs.
+
+**Speak like this:**
+
+"Behavioral code describes what the circuit should do. RTL code describes the actual synthesizable register-transfer structure: flip-flops, registers, and combinational logic between them. Testbench code is not the design; it is used to verify the design by applying inputs and checking outputs in simulation. So the main difference is purpose: behavioral is functional description, RTL is hardware implementation, and testbench is verification."
+
+[Back to index](./index.md)
+
+<a id="q48"></a>
+## 48. Difference between `always` and `initial` block.
+
+**Written answer:**
+
+**Definition to remember:** In Verilog, `initial` executes once at the beginning of simulation, while `always` executes repeatedly whenever its event control or delay condition triggers. [[S5]](#s5) [[S14]](#s14)
+
+| Point | `initial` block | `always` block |
+|---|---|---|
+| Execution | Runs once | Runs repeatedly |
+| Start time | Starts at simulation time 0 | Starts at simulation time 0, then repeats based on event/delay |
+| Common use | Testbench setup, stimulus, initialization | RTL combinational logic, sequential logic, testbench clocks |
+| Synthesizable? | Usually testbench-only; limited FPGA initialization cases exist | Synthesizable when written in proper RTL style |
+| Event control | Not required | Usually needs event control or delay |
+| Example | Reset stimulus | Flip-flop or combinational block |
+
+**`initial` example:**
+
+```verilog
+initial begin
+    rst = 1'b1;
+    #20 rst = 1'b0;
+end
+```
+
+This runs once in simulation.
+
+**`always` example for sequential RTL:**
+
+```verilog
+always @(posedge clk) begin
+    if (rst)
+        q <= 1'b0;
+    else
+        q <= d;
+end
+```
+
+This runs on every positive clock edge.
+
+**`always` example for combinational RTL:**
+
+```verilog
+always @(*) begin
+    y = (a & b) | c;
+end
+```
+
+This runs whenever any right-hand-side signal changes.
+
+**Important warning:**
+
+An `always` block without delay or event control can create an infinite zero-time loop in simulation:
+
+```verilog
+always begin
+    clk = ~clk;   // bad without delay
+end
+```
+
+Correct testbench clock:
+
+```verilog
+always #5 clk = ~clk;
+```
+
+**Speak like this:**
+
+"The `initial` block runs only once, usually at the start of simulation, so it is mainly used in testbenches for initialization and stimulus. The `always` block runs repeatedly whenever its sensitivity list, clock edge, or delay triggers. For RTL, I use `always @(posedge clk)` for sequential logic and `always @(*)` for combinational logic. In testbenches, `always #5 clk = ~clk` is commonly used to generate a clock."
+
+[Back to index](./index.md)
+
+<a id="q49"></a>
+## 49. Can a latch be clocked? Draw output waveforms for latch and flip-flop for a given input waveform.
+
+**Written answer:**
+
+**Definition to remember:** A latch can have an enable or clock control signal, but it is still level-sensitive. That means it is transparent during the active level and holds its previous value during the inactive level. A flip-flop is edge-sensitive and samples input only at the active clock edge. [[S3]](#s3)
+
+So yes, a latch can be "clocked" in the sense that it can have a clock/enable input. But it should be called a clocked latch or gated latch, not an edge-triggered flip-flop.
+
+**D latch behavior:**
+
+Assume active-high enable:
+
+| Enable/CLK | D | Q |
+|---:|---:|---|
+| 1 | 0 | 0 |
+| 1 | 1 | 1 |
+| 0 | X | Hold previous Q |
+
+**D flip-flop behavior:**
+
+Assume positive-edge triggered:
+
+| Clock event | D | Q |
+|---|---:|---|
+| Rising edge | 0 | 0 after clock-to-Q delay |
+| Rising edge | 1 | 1 after clock-to-Q delay |
+| No edge | X | Hold previous Q |
+
+**How to draw waveform from a given input:**
+
+1. For latch, first mark the active level of enable/clock.
+2. During the active level, copy `D` to `Q` after small propagation delay.
+3. During the inactive level, keep `Q` constant.
+4. For flip-flop, mark only the active clock edges.
+5. At each active edge, sample the value of `D`.
+6. Change `Q` after clock-to-Q delay and hold it until the next active edge.
+
+**Example waveform idea:**
+
+```text
+time:     t0 t1 t2 t3 t4 t5 t6 t7
+CLK/EN:   0  1  1  0  0  1  1  0
+D:        0  0  1  1  0  1  0  0
+Latch Q:  0  0  1  1  1  1  0  0   // follows D only while EN=1
+FF Q:     0  0  0  0  0  1  1  1   // samples D only at rising edges
+```
+
+In the latch row, `Q` follows `D` during `CLK/EN = 1`. In the flip-flop row, `Q` changes only after the active edge.
+
+**Speak like this:**
+
+"A latch can have a clock or enable signal, but it is level-sensitive, not edge-sensitive. When the enable level is active, the latch is transparent and output follows input. When enable is inactive, it holds the previous value. A flip-flop samples input only at a clock edge and holds that value until the next active edge. So while drawing waveforms, for a latch I copy input during the active level; for a flip-flop I sample input only at the clock edge."
+
+[Back to index](./index.md)
+
+<a id="q50"></a>
+## 50. Construct NOT and buffer from XOR.
+
+**Written answer:**
+
+**Definition to remember:** XOR can act as a controlled inverter. If one input is `0`, it passes the other input unchanged. If one input is `1`, it inverts the other input. [[S40]](#s40)
+
+**XOR truth table:**
+
+| A | B | A xor B |
+|---:|---:|---:|
+| 0 | 0 | 0 |
+| 0 | 1 | 1 |
+| 1 | 0 | 1 |
+| 1 | 1 | 0 |
+
+### Buffer using XOR
+
+Tie one input of XOR to `0`.
+
+```text
+Y = A xor 0 = A
+```
+
+```text
+A ----\
+      XOR ---- Y = A
+0 ----/
+```
+
+### NOT gate using XOR
+
+Tie one input of XOR to `1`.
+
+```text
+Y = A xor 1 = A'
+```
+
+```text
+A ----\
+      XOR ---- Y = A'
+1 ----/
+```
+
+**Verilog:**
+
+```verilog
+assign buffer_out = a ^ 1'b0;
+assign not_out    = a ^ 1'b1;
+```
+
+**Speak like this:**
+
+"XOR can work like a controlled inverter. If I XOR a signal with `0`, the output is the same signal, so it acts as a buffer. If I XOR a signal with `1`, the output becomes the complement, so it acts as a NOT gate. Therefore `A xor 0 = A` and `A xor 1 = A'`."
+
+[Back to index](./index.md)
+
+<a id="q51"></a>
+## 51. Draw the FSM for sequence 0111.
+
+**Written answer:**
+
+**Definition to remember:** A sequence detector FSM checks a serial input stream and asserts output when a target bit pattern is detected. In a Mealy FSM, output is placed on transitions because output depends on present state and current input. [[S2]](#s2) [[S41]](#s41)
+
+Target sequence:
+
+```text
+0111
+```
+
+**State meaning:**
+
+| State | Meaning |
+|---|---|
+| S0 | No useful match |
+| S1 | Matched `0` |
+| S2 | Matched `01` |
+| S3 | Matched `011` |
+
+### Mealy FSM transition table for 0111
+
+Transition format:
+
+```text
+next_state / output
+```
+
+| Present state | Input 0 | Input 1 |
+|---|---|---|
+| S0 | S1 / 0 | S0 / 0 |
+| S1 | S1 / 0 | S2 / 0 |
+| S2 | S1 / 0 | S3 / 0 |
+| S3 | S1 / 0 | S0 / 1 |
+
+**ASCII state diagram:**
+
+```text
+S0 --0/0--> S1 --1/0--> S2 --1/0--> S3 --1/1--> S0
+^           ^           |           |
+|           |           |0/0        |0/0
++---1/0----+           +-----> S1 <-+
+            \--0/0 loops on S1
+```
+
+**Important point about overlapping:**
+
+For sequence `0111`, after detection on `S3 --1/1`, the FSM returns to `S0`. This is true even for overlapping detection because the detected sequence `0111` has no proper suffix that is also a prefix of `0111`.
+
+For example, suffixes after full detection are:
+
+```text
+111, 11, 1
+```
+
+None of these equals prefix `0`, `01`, or `011`. So the next state is `S0`.
+
+**Speak like this:**
+
+"For sequence `0111`, I create states based on partial matches. `S0` means no match, `S1` means `0` is matched, `S2` means `01` is matched, and `S3` means `011` is matched. When input `1` arrives in `S3`, the full sequence `0111` is detected, so output becomes `1`. After that, the FSM goes to `S0` because no suffix of `0111` is also a prefix of the same sequence."
+
+[Back to index](./index.md)
+
+<a id="q52"></a>
+## 52. Can we use XOR as a delay element?
+
+**Written answer:**
+
+**Definition to remember:** Every real gate has propagation delay, including XOR. But in normal RTL/digital design, XOR should not be used as a reliable delay element because gate delay is technology, voltage, temperature, synthesis, placement, and routing dependent. [[S4]](#s4)
+
+**Short answer:**
+
+Technically, an XOR gate has delay, so a signal passing through it is delayed. But practically, we should not design timing by intentionally using XOR as a delay element in normal RTL.
+
+**Why it is not recommended:**
+
+1. **Synthesis may optimize it away:** If you write `A xor 0`, synthesis may replace it with just `A`.
+2. **Delay is not fixed:** Gate delay changes with process, voltage, temperature, load, and routing.
+3. **Poor portability:** The same RTL can have different delays on FPGA, ASIC, and different libraries.
+4. **Timing should be controlled properly:** Use clocked design, STA constraints, buffers/delay cells, or vendor primitives where delay is truly required.
+5. **XOR can glitch:** XOR output can glitch when inputs change at different times, so it is risky as a timing element.
+
+**Where XOR may appear in timing-related circuits:**
+
+XOR gates are sometimes used in phase detectors, edge detectors, parity circuits, or custom delay/measurement circuits. But that is different from relying on a random XOR gate as a stable delay in synthesizable RTL.
+
+**Speak like this:**
+
+"An XOR gate has propagation delay like any real gate, but I should not use it as a reliable delay element in normal RTL design. The delay can change with technology, voltage, temperature, load, routing, and synthesis optimization. If I write `A xor 0`, the tool may even optimize it into a wire. So for real delay requirements, I should use proper timing constraints, registers, buffers or dedicated delay cells, not a random XOR gate."
+
+[Back to index](./index.md)
+
+<a id="q53"></a>
+## 53. If input is 1100, what will be the output in Johnson counter and ring counter?
+
+**Written answer:**
+
+**Definition to remember:** A ring counter feeds the last flip-flop output back to the first flip-flop. A Johnson counter, also called a twisted ring counter, feeds the inverted last flip-flop output back to the first flip-flop. [[S42]](#s42) [[S43]](#s43)
+
+Assumption for this answer:
+
+```text
+State = Q3 Q2 Q1 Q0
+Right shift is used.
+Ring next state    = Q0 Q3 Q2 Q1
+Johnson next state = Q0' Q3 Q2 Q1
+Present state      = 1100
+```
+
+### Ring counter
+
+For ring counter:
+
+```text
+Next = Q0 Q3 Q2 Q1
+```
+
+Given:
+
+```text
+Q3 Q2 Q1 Q0 = 1 1 0 0
+Q0 = 0
+```
+
+So:
+
+```text
+Next = 0 1 1 0 = 0110
+```
+
+If it continues:
+
+```text
+1100 -> 0110 -> 0011 -> 1001 -> 1100
+```
+
+**Important note:** A standard one-hot ring counter normally has only one `1`, like `1000`, `0100`, `0010`, `0001`. So `1100` is not a valid one-hot ring counter state. But if the circuit is simply a circular shift register, it will rotate `1100` as shown.
+
+### Johnson counter
+
+For Johnson counter:
+
+```text
+Next = Q0' Q3 Q2 Q1
+```
+
+Given:
+
+```text
+Q0 = 0, so Q0' = 1
+```
+
+So:
+
+```text
+Next = 1 1 1 0 = 1110
+```
+
+If it continues:
+
+```text
+1100 -> 1110 -> 1111 -> 0111 -> 0011 -> 0001 -> 0000 -> 1000 -> 1100
+```
+
+**Speak like this:**
+
+"Assuming a 4-bit right-shift counter with state `Q3 Q2 Q1 Q0`, a ring counter feeds `Q0` back to `Q3`, so from `1100` the next state is `0110`. A Johnson counter feeds inverted `Q0` back to `Q3`, so from `1100`, since `Q0` is `0`, inverted feedback is `1`, and the next state is `1110`. I should also mention that `1100` is not a valid one-hot state for a standard ring counter, but it will rotate if the circuit is just a circular shift register."
+
+[Back to index](./index.md)
+
+<a id="q54"></a>
+## 54. Which is faster: NAND or NOR? Why?
+
+**Written answer:**
+
+**Definition to remember:** In CMOS logic, NAND is usually faster than NOR for the same fan-in and comparable sizing, mainly because NOR has series PMOS transistors in the pull-up path, and PMOS devices are generally weaker/slower than NMOS devices. [[S10]](#s10) [[S34]](#s34)
+
+**CMOS structure comparison:**
+
+| Gate | PMOS network | NMOS network |
+|---|---|---|
+| NAND | Parallel PMOS | Series NMOS |
+| NOR | Series PMOS | Parallel NMOS |
+
+**Why NAND is usually faster:**
+
+1. For a NAND gate, the pull-up path uses PMOS in parallel.
+2. For a NOR gate, the pull-up path uses PMOS in series.
+3. PMOS has lower mobility than NMOS, so PMOS is naturally weaker.
+4. Stacking weaker PMOS devices in series increases resistance.
+5. Higher resistance increases delay, especially for output rising transitions.
+6. Therefore, NOR often needs larger PMOS sizing to match NAND speed, which increases area and capacitance.
+
+**Interview-safe answer:**
+
+NAND is often faster in CMOS, but not absolutely always. Actual speed depends on fan-in, sizing, load, standard-cell library, wiring, and process technology.
+
+**Speak like this:**
+
+"In CMOS, NAND is usually faster than NOR. The reason is the transistor network. NAND has PMOS devices in parallel and NMOS devices in series, while NOR has PMOS devices in series and NMOS devices in parallel. Since PMOS devices are weaker than NMOS devices, putting PMOS in series makes the NOR pull-up path slower. So for the same fan-in and similar sizing, NAND usually has better delay. But the final answer still depends on the library, sizing, load, and technology."
+
+[Back to index](./index.md)
+
+<a id="q55"></a>
+## 55. Draw waveform for latch and flip-flop.
+
+**Written answer:**
+
+**Definition to remember:** A latch is level-sensitive, so its output can follow input during the active enable level. A flip-flop is edge-sensitive, so its output changes only after the active clock edge. [[S3]](#s3)
+
+Assume:
+
+```text
+Latch: active-high D latch
+Flip-flop: positive-edge D flip-flop
+Ignore small propagation delay in the rough drawing
+```
+
+**Example waveform:**
+
+```text
+CLK/EN:  ___-------___-------___
+D:       __--__----____--______
+
+Latch Q: ___--__----____--_____
+         follows D while CLK/EN is high,
+         holds value while CLK/EN is low
+
+FF Q:    ______----___________
+         changes only at rising clock edges
+```
+
+**More exact drawing rule:**
+
+For a latch:
+
+```text
+if EN = 1, Q = D
+if EN = 0, Q holds previous value
+```
+
+For a D flip-flop:
+
+```text
+at posedge CLK, Q captures D
+between clock edges, Q holds previous value
+```
+
+**Table example:**
+
+| Time | CLK/EN | D | Latch Q | Flip-flop Q |
+|---:|---:|---:|---:|---:|
+| t0 | 0 | 0 | 0 | 0 |
+| t1 rising | 1 | 1 | 1 | 1 |
+| t2 | 1 | 0 | 0 | 1 |
+| t3 falling | 0 | 1 | 0 | 1 |
+| t4 | 0 | 0 | 0 | 1 |
+| t5 rising | 1 | 0 | 0 | 0 |
+| t6 | 1 | 1 | 1 | 0 |
+
+**Speak like this:**
+
+"For a latch waveform, I first mark the active enable level. During that level, `Q` follows `D`; outside that level, `Q` holds its last value. For a flip-flop waveform, I ignore changes in `D` between edges and only sample `D` at the active clock edge. Then `Q` changes after clock-to-Q delay and holds until the next edge."
+
+[Back to index](./index.md)
+
+<a id="q56"></a>
+## 56. Latch vs flip-flop.
+
+**Written answer:**
+
+**Definition to remember:** Both latch and flip-flop are one-bit storage elements. A latch is level-sensitive, while a flip-flop is edge-sensitive. [[S3]](#s3)
+
+| Parameter | Latch | Flip-flop |
+|---|---|---|
+| Triggering | Level triggered | Edge triggered |
+| Control signal | Enable or clock level | Clock edge |
+| Output behavior | Can follow input while enabled | Captures input only at active edge |
+| Transparency | Transparent during active level | Not transparent between edges |
+| Timing | More timing care due transparency | Easier for synchronous timing |
+| Complexity | Usually simpler | Usually built from latches/gates, more complex |
+| Speed | Can be faster and allow time borrowing | More controlled but can add clock-to-Q overhead |
+| Common use | Low-power/latch-based timing, temporary storage | Registers, counters, FSMs, pipelines |
+| Risk | Race/hazard risk if poorly controlled | Setup/hold/metastability still matter |
+| Examples | SR latch, D latch | D FF, JK FF, T FF, SR FF |
+
+**Core difference:**
+
+```text
+Latch:
+Q can change as long as enable level is active.
+
+Flip-flop:
+Q changes only at clock edge.
+```
+
+**Interview correction:**
+
+If someone says "latch has no clock", the better answer is: a basic latch may have enable instead of a clock, but a gated latch can use a clock-like enable signal. Still, it remains level-sensitive. A flip-flop is edge-triggered.
+
+**Speak like this:**
+
+"Both latch and flip-flop store one bit. The main difference is timing. A latch is level-sensitive, so when enable is active, output can follow input. When enable is inactive, it holds the previous value. A flip-flop is edge-sensitive, so it samples input only at the active clock edge and holds that value between edges. Because of this, flip-flops are more common in synchronous designs like registers, counters, and FSMs, while latches are used when level-sensitive storage or time borrowing is desired."
+
+[Back to index](./index.md)
+
 <a id="sources"></a>
 ## Source References
 
@@ -1742,3 +2858,39 @@ So the Nyquist plot should not encircle the point `-1 + j0`.
 
 <a id="s31"></a>
 **S31. Electrical4U, Nyquist Stability Criterion:** https://www.electrical4u.com/nyquist-stability-criterion/
+
+<a id="s32"></a>
+**S32. Analog Devices, Analog-to-Digital Converter:** https://www.analog.com/en/resources/glossary/analog-to-digital-converter.html
+
+<a id="s33"></a>
+**S33. Electronics Tutorials, Communication Systems:** https://www.electronics-tutorials.ws/systems/communication-systems.html
+
+<a id="s34"></a>
+**S34. UC Riverside Combinational Logic Slides, CMOS NAND/NOR Structures:** https://intra.engr.ucr.edu/~htseng/classes/ee120a_2020sp/slides/2_CombinationalLogic.pdf
+
+<a id="s35"></a>
+**S35. Electronics Tutorials, MOSFET as a Switch:** https://www.electronics-tutorials.ws/transistor/tran_7.html
+
+<a id="s36"></a>
+**S36. Team VLSI, Latch-up in CMOS Design:** https://teamvlsi.com/2020/05/latch-up-is-in-cmos-design.html
+
+<a id="s37"></a>
+**S37. GeeksforGeeks, Difference between Synchronous and Asynchronous Sequential Circuits:** https://www.geeksforgeeks.org/digital-logic/difference-between-synchronous-and-asynchronous-sequential-circuits/
+
+<a id="s38"></a>
+**S38. TechTarget, FIFO:** https://www.techtarget.com/whatis/definition/FIFO-first-in-first-out
+
+<a id="s39"></a>
+**S39. VLSI Verify, Synchronous FIFO:** https://vlsiverify.com/verilog/verilog-codes/synchronous-fifo/
+
+<a id="s40"></a>
+**S40. VLSI Universe, Convert XOR to Inverter and Buffer:** https://vlsiuniverse.blogspot.com/2017/11/design-problem-how-can-you-convert-xor.html
+
+<a id="s41"></a>
+**S41. Verilog Code Blog, Finite State Machine Design for Sequence 0111:** https://verilog-code.blogspot.com/2014/08/finite-state-machine-design-for.html
+
+<a id="s42"></a>
+**S42. GeeksforGeeks, Ring Counter in Digital Logic:** https://www.geeksforgeeks.org/digital-logic/ring-counter-in-digital-logic/
+
+<a id="s43"></a>
+**S43. GeeksforGeeks, Johnson Counter:** https://www.geeksforgeeks.org/digital-logic/johnson-counter/
