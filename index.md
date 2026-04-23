@@ -48,7 +48,7 @@
 | 44 | [Difference between asynchronous and synchronous circuits.](./answers.md#q44) |
 | 45 | [Write Verilog code for a 2-bit counter with circuit and truth table.](./answers.md#q45) |
 | 46 | [What is FIFO and how does it work?](./answers.md#q46) |
-| 47 | [Difference between behavioral code, RTL code, and testbench code.](./answers.md#q47) |
+| 47 | [Difference between behavioral, dataflow, structural, RTL, and testbench code.](./answers.md#q47) |
 | 48 | [Difference between `always` and `initial` block.](./answers.md#q48) |
 | 49 | [Can a latch be clocked? Draw output waveforms for latch and flip-flop.](./answers.md#q49) |
 | 50 | [Construct NOT and buffer from XOR.](./answers.md#q50) |

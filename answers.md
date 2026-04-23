@@ -930,12 +930,19 @@ The preference between NAND and NOR depends on the circuit, technology, and desi
 
 **Why NAND is often preferred in CMOS:**
 
-1. **Ease of implementation:** NAND gates are simple and very common in CMOS standard-cell libraries. Designers often use NAND-based logic because it maps efficiently into practical circuits.
-2. **Transistor structure:** In a CMOS NAND gate, the PMOS transistors are in parallel and the NMOS transistors are in series. In a CMOS NOR gate, the PMOS transistors are in series and the NMOS transistors are in parallel. Since PMOS devices are generally weaker/slower than NMOS devices, series PMOS in NOR usually makes the pull-up path slower or larger. [[S10]](#s10)
-3. **Size and power:** To make a NOR gate as fast as a NAND gate, the series PMOS devices may need to be made larger. Larger transistors can increase area and capacitance, which can affect power and delay.
-4. **Performance:** NAND gates often have better delay characteristics in CMOS because their weaker PMOS devices are not stacked in series.
-5. **Design style:** The final choice also depends on the standard-cell library, available cells, fan-in, loading, and the Boolean expression being implemented.
-6. **Application requirement:** Some logic functions naturally map better to NOR, so NOR is still used where it gives a cleaner or faster implementation.
+1. **Ease of implementation:** NAND gates are simple, common, and efficient in CMOS standard-cell libraries. In practical digital design, many Boolean expressions are mapped into NAND-based structures because NAND cells are usually well optimized by the library vendor.
+
+2. **Transistor structure:** In a 2-input CMOS NAND gate, the PMOS transistors are connected in parallel and the NMOS transistors are connected in series. In a 2-input CMOS NOR gate, the PMOS transistors are connected in series and the NMOS transistors are connected in parallel. This matters because the pull-up path is made of PMOS devices, and PMOS devices are generally weaker/slower than NMOS devices. So when NOR puts PMOS devices in series, the pull-up resistance increases and the output rising transition becomes slower. [[S10]](#s10)
+
+3. **Size and power:** To make a NOR gate as fast as a NAND gate, the series PMOS devices in NOR often need to be made wider. Wider transistors reduce resistance, but they also increase area and capacitance. More capacitance can increase dynamic power and can also slow down the previous driving stage. So the speed improvement may come with area and power cost.
+
+4. **Performance:** NAND often has better delay in CMOS because the weaker PMOS devices are not stacked in series. The NAND gate has series NMOS in the pull-down path, but NMOS devices are stronger than PMOS devices, so that stack is usually less harmful than the PMOS stack in NOR. This is why, for the same fan-in and comparable sizing, NAND is often faster than NOR.
+
+5. **Fan-in effect:** As fan-in increases, stacking becomes worse. A 3-input or 4-input NOR has multiple PMOS devices in series, making the pull-up path very weak unless the PMOS devices are made large. High fan-in NAND also has stacked NMOS, but because NMOS is stronger, NAND usually scales better than NOR in many CMOS libraries.
+
+6. **Design style and library dependence:** The final choice is not based only on theory. It also depends on the standard-cell library, transistor sizing, load capacitance, fan-in, routing, power goal, and the Boolean expression being implemented. A good synthesis tool may choose NAND, NOR, AOI, OAI, or inverter combinations depending on the best timing and area result.
+
+7. **Application requirement:** Some functions naturally map better to NOR or OR-based logic. So NOR is not wrong or useless. The correct interview answer is that NAND is often preferred in CMOS, but the real design choice depends on the circuit and library.
 
 **Final comparison:**
 
@@ -953,7 +960,7 @@ The interview-safe answer is: NAND and NOR are logically equally powerful, but N
 
 **Speak like this:**
 
-"Both NAND and NOR are universal gates, so logically both can implement any Boolean function. But in CMOS design, NAND is usually preferred. The reason is transistor implementation: in NAND, PMOS transistors are in parallel, while in NOR, PMOS transistors are in series. Since PMOS devices are weaker than NMOS devices, series PMOS makes NOR slower or larger. So NAND often gives better speed and area. Still, the final choice depends on the Boolean function, standard-cell library, power, delay, and application requirement."
+"Both NAND and NOR are universal gates, so logically both are equally powerful. But in CMOS implementation, NAND is usually preferred. The reason comes from transistor structure. In NAND, PMOS devices are in parallel and NMOS devices are in series. In NOR, PMOS devices are in series and NMOS devices are in parallel. Since PMOS devices are generally weaker than NMOS devices, series PMOS in NOR makes the pull-up path weak, so the output rising delay becomes larger. To compensate, we may need bigger PMOS devices, which increases area and capacitance. So NAND often gives better speed and area in CMOS. But I would not say NAND is always best; the final choice depends on fan-in, load, power, timing, the Boolean expression, and the standard-cell library."
 
 [Back to index](./index.md)
 
@@ -968,8 +975,8 @@ In real digital circuits, outputs do not change instantly when inputs change. Ga
 
 **Important delay terms:**
 
-1. **Propagation delay:** Maximum time after an input change for the output to become valid. This is used for setup timing.
-2. **Contamination delay:** Minimum time after an input change before the output may start changing. This is used for hold timing.
+1. **Propagation delay (`tpd`):** The maximum time from a valid input change to the time the output is guaranteed to become valid and stable. In timing analysis, propagation delay is used for setup checks because we must make sure data has enough time to travel through the combinational path before the next clock edge. [[S4]](#s4)
+2. **Contamination delay (`tcd`):** The minimum time from an input change to the earliest time the output may start changing. In timing analysis, contamination delay is used for hold checks because we must make sure new data does not reach the next flip-flop too quickly after the clock edge. [[S4]](#s4)
 3. **Rise delay:** Delay when output changes from `0` to `1`.
 4. **Fall delay:** Delay when output changes from `1` to `0`.
 5. **Gate delay:** Delay through a logic gate.
@@ -1087,33 +1094,79 @@ endmodule
 
 **Written answer:**
 
-**Definition to remember:** In interview terms, a BJT is usually treated as a current-controlled device because a small base current controls a larger collector current. A MOSFET is usually treated as a voltage-controlled device because the gate-to-source voltage controls the channel and drain current. [[S22]](#s22)
+**Definition to remember:** A BJT is a bipolar junction transistor, usually treated in interviews as a current-controlled device because base current controls collector current. A MOSFET is a metal-oxide-semiconductor field-effect transistor, usually treated as a voltage-controlled device because gate-to-source voltage controls the channel and drain current. [[S22]](#s22) [[S45]](#s45)
 
 | Point | BJT | MOSFET |
 |---|---|---|
 | Full form | Bipolar Junction Transistor | Metal-Oxide-Semiconductor Field-Effect Transistor |
-| Terminals | Base, emitter, collector | Gate, source, drain |
-| Control | Current-controlled device | Voltage-controlled device |
-| Input | Base current controls collector current | Gate voltage controls drain current |
-| Input impedance | Lower input impedance | Very high input impedance |
-| Carrier type | Bipolar device, uses electrons and holes | Unipolar device, mainly one carrier type |
-| Drive power | Needs continuous base current | Gate needs very little DC current ideally |
-| Speed/switching | Can have charge-storage delay | Often better for fast digital switching |
-| Common use | Analog amplification, current gain, some switching | CMOS logic, power switching, digital ICs |
-| Power applications | Used, but less common in modern power switching | Very common for high-power/high-speed switching |
+| Main terminals | Base, emitter, collector | Gate, source, drain; body/substrate also exists |
+| Control quantity | Base current controls collector current | Gate-to-source voltage controls channel |
+| Input nature | Requires base current | Insulated gate draws almost no DC current ideally |
+| Input impedance | Lower than MOSFET | Very high input impedance |
+| Carrier type | Bipolar: uses both electrons and holes | Field-effect/unipolar behavior: majority-carrier conduction |
+| Drive requirement | Needs continuous drive current in ON state | Needs gate charge/discharge current mainly during switching |
+| ON behavior | Has `VCE(sat)` in saturation | Acts like resistance `RDS(on)` when ON |
+| Switching | Can be slower in saturation due to stored charge | Usually faster for switching because it is majority-carrier based |
+| Thermal behavior | Current sharing can be harder in parallel BJTs | Easier to parallel many power MOSFETs due positive `RDS(on)` temperature tendency |
+| Digital IC use | Older bipolar logic, some analog/high-speed special cases | Dominant in CMOS digital ICs |
+| Common applications | Analog amplifiers, current mirrors, low-noise/small-signal stages, simple switches | CMOS logic, power switching, motor drives, DC-DC converters, high input impedance circuits |
 
-**Important points:**
+**Important distinctions:**
 
-1. A BJT has three terminals: base, emitter, and collector.
-2. A MOSFET has three main terminals: gate, source, and drain. It may also have a body/substrate terminal.
-3. BJT operation depends on current at the base terminal.
-4. MOSFET operation depends mainly on voltage at the insulated gate electrode.
-5. MOSFETs are more common in modern digital circuits because CMOS gives high density and low static power.
-6. BJTs are still useful where high current gain, analog amplification, or certain analog characteristics are needed.
+1. **Terminal difference:** A BJT has base, emitter, and collector. A MOSFET has gate, source, drain, and usually a body/substrate terminal internally.
+
+2. **Current control vs voltage control:** In basic interview language, a BJT is current-controlled because base current is needed to control collector current. A MOSFET is voltage-controlled because gate-to-source voltage creates or removes the channel. [[S45]](#s45)
+
+3. **Input impedance:** A BJT input junction behaves like a forward-biased diode when ON, so it needs input current. A MOSFET gate is insulated by oxide, so ideally no DC current flows into the gate; this gives very high input impedance. [[S45]](#s45)
+
+4. **Power loss in drive circuit:** For a BJT, base drive current must be continuously supplied while it is ON. For a MOSFET, the gate mostly consumes current only while charging and discharging gate capacitance during switching. This makes MOSFET gate driving efficient for many switching applications. [[S45]](#s45)
+
+5. **Switching speed:** A saturated BJT can store charge, which increases turn-off time. A MOSFET is a majority-carrier field-effect device, so it generally switches faster in power switching applications when driven properly. [[S46]](#s46)
+
+6. **Digital circuits:** MOSFETs are the foundation of CMOS logic. CMOS is preferred in modern digital ICs because it gives high density and very low static power in steady state.
+
+7. **Analog circuits:** BJTs are still valuable in analog design because they can provide high transconductance, good current gain, and useful analog characteristics for amplifiers, current mirrors, bandgap references, and precision circuits.
+
+**Advantages of BJT:**
+
+1. Good current gain, so a small base current can control a larger collector current.
+2. Useful for analog amplification because it can provide high transconductance for a given bias current.
+3. Often good in low-noise and precision analog circuits.
+4. Simple to use as a small-signal amplifier or low-side switch when base current is available.
+5. In some analog IC blocks, BJTs give predictable exponential `VBE` behavior, useful for references and temperature-related circuits.
+
+**Advantages of MOSFET:**
+
+1. Very high input impedance because the gate is insulated.
+2. Needs almost no DC gate current ideally, so drive power can be low.
+3. Very common in digital CMOS because CMOS has low static power and high integration density.
+4. Often better for high-speed switching and power switching.
+5. Low `RDS(on)` power MOSFETs can carry high current with low conduction loss.
+6. Easier to drive from logic circuits because the gate is voltage-controlled.
+7. Often easier to parallel in power applications than BJTs.
+
+**When to choose which:**
+
+| Situation | Better choice |
+|---|---|
+| Modern digital logic / VLSI | MOSFET, because CMOS uses MOSFETs |
+| High input impedance required | MOSFET |
+| Fast power switching | MOSFET |
+| Simple current amplification | BJT |
+| Analog gain stage with high transconductance | BJT can be attractive |
+| Low static power digital IC | MOSFET/CMOS |
+| Precision analog bias/reference circuits | BJT or BiCMOS may be useful |
+
+**One-line summary:**
+
+```text
+BJT: current-driven, good for gain and analog behavior.
+MOSFET: voltage-driven, high input impedance, best for CMOS digital and power switching.
+```
 
 **Speak like this:**
 
-"A BJT is a bipolar device with base, emitter, and collector terminals. In normal interview language, we treat it as current controlled because a small base current controls collector current. A MOSFET has gate, source, and drain terminals, and we treat it as voltage controlled because gate voltage controls the channel. MOSFETs have very high input impedance and are widely used in CMOS digital circuits and power switching. BJTs are still useful in analog amplification and current-gain applications."
+"A BJT is a bipolar device with base, emitter, and collector terminals. In interview language, I treat it as current-controlled because base current controls collector current. A MOSFET has gate, source, and drain terminals, and I treat it as voltage-controlled because gate-to-source voltage controls the channel. The MOSFET gate is insulated, so it has very high input impedance and ideally almost no DC gate current. That is why MOSFETs are widely used in CMOS digital circuits and power switching. A BJT needs continuous base current, but it is still very useful for analog amplification, current gain, low-noise stages, and precision analog circuits. So the practical distinction is: MOSFET is preferred for high-input-impedance, low-power digital and switching applications, while BJT is strong for gain-oriented analog applications."
 
 [Back to index](./index.md)
 
@@ -1130,10 +1183,20 @@ endmodule
 and, or, nand, nor, xor, xnor, not, buf
 ```
 
-Verilog also has tri-state gate primitives such as:
+Verilog also has tri-state gate primitives. These primitives drive an output only when the control signal is active; otherwise the output goes to high impedance `z`. [[S5]](#s5)
 
-```text
-bufif0, bufif1, notif0, notif1
+| Primitive | Meaning |
+|---|---|
+| `bufif1` | Buffer with active-high enable: output = input when control is `1`, else `z` |
+| `bufif0` | Buffer with active-low enable: output = input when control is `0`, else `z` |
+| `notif1` | Inverter with active-high enable: output = inverted input when control is `1`, else `z` |
+| `notif0` | Inverter with active-low enable: output = inverted input when control is `0`, else `z` |
+
+Example:
+
+```verilog
+bufif1 b1 (bus, data, enable);  // bus = data when enable = 1, else z
+notif0 n1 (bus, data, enable);  // bus = ~data when enable = 0, else z
 ```
 
 **Universal gate:**
@@ -1247,7 +1310,9 @@ A sequential circuit is usually built by combining combinational logic with memo
 
 **Written answer:**
 
-**Definition to remember:** In a Mealy machine, the output depends on the present state and the present input. For a sequence detector, the FSM moves through states that represent how much of the target sequence has already been matched. [[S2]](#s2) [[S23]](#s23)
+**Definition to remember:** A finite state machine (FSM) is a sequential circuit that can exist in only a finite number of states. In hardware, it is usually built from a state register, next-state combinational logic, and output combinational logic. The state register stores the present state; the next-state logic uses the present state and inputs to decide the next state; and the output logic produces the output. [[S2]](#s2) [[S53]](#s53)
+
+For a sequence detector FSM, each state represents how much of the target bit pattern has already been matched. In a Mealy sequence detector, the output depends on the present state and the current input, so the detection output is written on the transition that completes the sequence. [[S23]](#s23) [[S53]](#s53)
 
 Here I am using the common interview example sequence:
 
@@ -1336,28 +1401,74 @@ That means sequence `1010` is detected, output becomes `1`, and the machine rese
 
 **Written answer:**
 
-**Definition to remember:** A microprocessor is mainly a CPU on a chip and normally needs external memory and I/O to make a full system. A microcontroller integrates a CPU, memory, and peripherals on one chip for embedded control applications. [[S24]](#s24)
+**Definition to remember:** A microprocessor is a CPU-centric processing chip that usually depends on external memory, I/O, and peripheral chips to form a complete system. A microcontroller is a single-chip embedded controller that integrates a CPU, memory, and peripherals such as GPIO, timers, ADC, serial interfaces, and interrupt control on the same chip. [[S24]](#s24) [[S47]](#s47)
 
 | Point | Microprocessor | Microcontroller |
 |---|---|---|
-| Basic idea | CPU-focused chip | Small computer/control system on one chip |
-| Main components | CPU mainly | CPU + memory + I/O + timers/peripherals |
-| External components | Needs external RAM, ROM/flash, and I/O support | Many required blocks are already on chip |
-| Application | General-purpose computing | Embedded and dedicated control |
-| System size | Usually larger system | Usually compact system |
-| Power | Usually higher system power | Usually lower power for embedded tasks |
-| Cost | Higher total system cost because external chips are needed | Lower for small embedded systems |
-| Performance focus | High processing power and flexibility | Control, real-time response, low power, low cost |
-| Examples | PC/laptop processors, application processors | 8051, AVR, PIC, ARM Cortex-M MCUs |
-| Used in | Computers, phones, high-end OS-based systems | Washing machines, remotes, sensors, motor control, IoT |
+| Short name | MPU | MCU |
+| Basic idea | CPU-focused chip | Complete embedded controller on one chip |
+| Main components | CPU/cache/MMU or memory controller depending on device | CPU + flash/ROM + RAM + GPIO + timers + peripherals |
+| Memory | Usually external RAM and storage are required | On-chip flash and RAM are commonly included |
+| I/O | Usually needs external peripheral/interface chips | I/O ports and serial interfaces are built in |
+| Operating system | Can run large OS like Linux/Windows when paired with memory | Usually runs bare-metal code or RTOS |
+| Performance | Higher processing power and higher clock speed | Lower/moderate processing power but optimized for control |
+| Power consumption | Usually higher system power | Usually lower power, often has sleep/low-power modes |
+| Cost | Higher total board/system cost | Lower total system cost for embedded tasks |
+| Board complexity | More external components, more complex PCB | Fewer external components, simpler PCB |
+| Real-time control | Possible, but OS and external memory can add complexity | Very suitable for deterministic real-time control |
+| Application type | General-purpose computing and application processing | Dedicated embedded control |
+| Examples | x86 CPUs, application processors, ARM Cortex-A MPUs | 8051, PIC, AVR, ARM Cortex-M MCUs |
+| Used in | PCs, laptops, phones, high-end embedded Linux boards | Washing machines, remotes, sensors, motor control, IoT nodes |
+
+**Important distinctions:**
+
+1. **Integration:** The biggest difference is integration. A microprocessor mainly provides processing capability, while a microcontroller integrates processing plus memory plus I/O on one chip. [[S24]](#s24)
+
+2. **External hardware:** A microprocessor-based system normally needs external RAM, storage, power management, and I/O support. A microcontroller-based system can often run with very few external components because flash, RAM, GPIO, timers, UART/SPI/I2C, ADC, and interrupt controller may already be inside the chip. [[S47]](#s47)
+
+3. **Application goal:** A microprocessor is chosen when we need high computation, complex software, user interface, networking stack, graphics, or a large operating system. A microcontroller is chosen when we need low-cost, low-power, reliable control of a specific task.
+
+4. **Power and cost:** Since microcontrollers include many blocks on one chip and are optimized for embedded tasks, they usually reduce board area, cost, and power. Microprocessors can be much more powerful, but the total system usually consumes more power and costs more.
+
+5. **Software style:** Microprocessors often run OS-based applications. Microcontrollers often run firmware, bare-metal code, interrupt-driven code, or an RTOS.
+
+6. **Real-time behavior:** Microcontrollers are commonly preferred for real-time control because the firmware directly controls peripherals and interrupts. Microprocessor systems can also do real-time tasks, but an OS and external memory can add latency unless designed carefully.
+
+**Advantages of microprocessor:**
+
+1. Higher processing capability for complex tasks.
+2. Better for running large operating systems.
+3. Can support high memory capacity.
+4. Suitable for graphics, networking, multimedia, and application-level processing.
+5. More flexible for general-purpose computing.
+
+**Advantages of microcontroller:**
+
+1. CPU, memory, and peripherals are integrated on one chip.
+2. Lower cost and smaller board size.
+3. Lower power consumption, with sleep and low-power modes.
+4. Better suited for direct hardware control.
+5. Easier to use for sensors, motors, buttons, displays, and embedded I/O.
+6. Good for real-time and interrupt-driven tasks.
+
+**When to choose which:**
+
+| Requirement | Better choice |
+|---|---|
+| Run Linux/Windows or a rich OS | Microprocessor |
+| Control a motor, sensor, relay, or embedded device | Microcontroller |
+| Need high processing and large memory | Microprocessor |
+| Need low power, low cost, small PCB | Microcontroller |
+| Need direct GPIO/timer/ADC control | Microcontroller |
+| Need graphics/multimedia/application processing | Microprocessor |
 
 **Interview nuance:**
 
-Modern chips can blur the boundary because many application processors include memory controllers and peripherals. But for interview basics, use the traditional distinction: microprocessor means CPU-centric; microcontroller means CPU plus memory and peripherals integrated for embedded control.
+Modern SoCs can blur the boundary because some application processors include many peripherals, and some high-end microcontrollers are very powerful. But for interview basics, the clean distinction is: microprocessor is CPU-centric and usually needs external memory/I/O, while microcontroller is integrated and optimized for embedded control.
 
 **Speak like this:**
 
-"A microprocessor is mainly a CPU, so memory and I/O are generally connected externally to build a complete system. It is used where high processing power and flexibility are needed, like computers. A microcontroller integrates CPU, memory, I/O ports, timers, and peripherals on a single chip. So it is compact, low cost, and low power, which makes it suitable for embedded applications like washing machines, sensors, and control systems."
+"A microprocessor is mainly a CPU-focused chip. To build a complete system around it, we usually connect external memory, storage, and I/O peripherals. It is used when high processing power, large memory, and complex software are needed, like computers or application processors. A microcontroller integrates CPU, flash, RAM, GPIO, timers, ADC, communication interfaces, and interrupt control on one chip. Because of that, it is smaller, cheaper, lower power, and better for embedded control tasks like sensors, motor control, appliances, and IoT devices. So the simple distinction is: microprocessor is for computation-heavy general processing; microcontroller is for integrated embedded control."
 
 [Back to index](./index.md)
 
@@ -1953,40 +2064,83 @@ In CMOS logic, NMOS is good at pulling output down to `0`. It turns ON when gate
 
 **Written answer:**
 
-**Definition to remember:** Latch-up in CMOS is a low-impedance path between the power supply rails caused by triggering a parasitic SCR/thyristor structure inside the CMOS device. It can cause excessive current and may damage the chip. [[S36]](#s36)
+**Definition to remember:** Latch-up is a failure condition in CMOS ICs where a parasitic PNPN/SCR-like structure turns ON and creates a low-impedance path between `VDD` and `GND`. Once triggered, a large current can keep flowing even after the trigger is removed, and the IC may be damaged unless current is limited or power is removed. [[S36]](#s36) [[S48]](#s48) [[S49]](#s49)
 
 **Why it happens:**
 
-In bulk CMOS, PMOS and NMOS transistors are formed in wells and substrate. Their p-n junctions can unintentionally form parasitic PNP and NPN transistors. Together, these parasitic transistors can behave like a PNPN SCR.
+In a bulk CMOS process, PMOS and NMOS transistors are built inside wells and substrate. Because of these p-type and n-type regions, unwanted parasitic bipolar transistors are also formed inside the chip.
 
-If this parasitic SCR is triggered, it creates a strong current path:
+The important parasitic devices are:
+
+```text
+Parasitic PNP transistor
+Parasitic NPN transistor
+Well/substrate resistances
+```
+
+Together, the parasitic PNP and NPN transistors can form a PNPN structure, similar to an SCR or thyristor. If this structure gets triggered, it creates positive feedback: current in one parasitic transistor helps turn ON the other, and the second helps keep the first ON. [[S48]](#s48)
+
+Once this happens, the chip can behave as if there is a near-short path:
 
 ```text
 VDD -> parasitic path -> GND
 ```
 
-This condition can remain even after the triggering event is removed, until power is removed or current is limited.
+This is why latch-up is dangerous: the normal MOS gates may lose control, supply current rises sharply, and the device can overheat or fail.
+
+**Simple cross-section idea:**
+
+```text
+VDD
+ |
+P+ diffusion in N-well      N+ diffusion in P-substrate/P-well
+      |                                  |
+   parasitic PNP  <---- feedback ----> parasitic NPN
+      |                                  |
+   well/substrate resistance paths
+      |
+GND
+```
+
+Interview meaning: the CMOS structure unintentionally contains two BJTs connected like a thyristor. Latch-up is when this unintended thyristor turns ON.
 
 **Causes:**
 
-1. Input/output voltage going beyond supply rails.
-2. ESD or transient spikes.
-3. Incorrect power sequencing.
+1. Input or output voltage going above `VDD` or below `GND`.
+2. ESD, surge voltage, or transient current on an I/O pin.
+3. Sharp supply-voltage changes or incorrect power sequencing.
 4. Large substrate or well current.
-5. Poor well/substrate contact design.
+5. Poor well/substrate contacts, causing voltage drops in substrate or well resistance.
+6. Noise injection from nearby high-current or switching circuits.
+
+**What happens during latch-up:**
+
+1. A disturbance injects current into the substrate or well.
+2. Voltage drop across substrate/well resistance forward-biases a parasitic junction.
+3. A parasitic BJT turns ON.
+4. That BJT turns ON the complementary parasitic BJT.
+5. Positive feedback forms an SCR-like conduction path.
+6. A large current flows from supply to ground.
+7. The condition may stay latched until power is removed or current falls below the holding current. [[S48]](#s48)
 
 **Prevention methods:**
 
-1. Use guard rings around sensitive devices.
-2. Add enough well taps and substrate contacts.
-3. Increase spacing between PMOS and NMOS devices where needed.
-4. Use proper ESD protection.
-5. Avoid violating absolute maximum ratings.
-6. Use latch-up resistant processes like SOI where applicable.
+1. **Guard rings:** Surround sensitive devices with guard rings to collect injected carriers and reduce substrate noise.
+2. **Well taps and substrate contacts:** Add enough taps so well/substrate resistance is low and parasitic junctions are not easily forward biased.
+3. **Proper spacing:** Increase spacing between PMOS and NMOS devices where latch-up risk is high.
+4. **ESD protection:** Use proper ESD structures at I/O pads.
+5. **Stay within voltage ratings:** Do not let input/output pins go above `VDD` or below `GND`.
+6. **Good power sequencing:** Avoid powering I/O before supply rails if the IC does not allow it.
+7. **Use latch-up resistant processes:** SOI or special CMOS processes can reduce parasitic paths.
+8. **Current limiting:** In board design, series resistance or current limiting can reduce damage risk if abnormal current occurs.
+
+**Short interview distinction:**
+
+Latch-up is not a normal logic latch. A logic latch stores a bit intentionally. CMOS latch-up is an unwanted parasitic short-circuit condition inside the IC.
 
 **Speak like this:**
 
-"Latch-up is a dangerous condition in CMOS where parasitic PNP and NPN transistors form an SCR-like path between `VDD` and ground. If triggered by ESD, overvoltage, transients, or bad power sequencing, it creates a low-impedance path and large current can flow. This can damage the IC. We prevent it using guard rings, well taps, proper substrate contacts, spacing, ESD protection, and by avoiding input voltages beyond supply limits."
+"Latch-up is an unwanted failure condition in CMOS. Because of the p-type and n-type regions in a CMOS process, parasitic PNP and NPN transistors are naturally formed. These parasitic transistors can connect like a PNPN SCR structure. If an I/O overvoltage, ESD pulse, supply transient, or substrate current triggers it, a low-impedance path forms between `VDD` and ground. Then large current can continue flowing even after the trigger is removed, so the chip can heat up or get damaged. We prevent latch-up using guard rings, proper well and substrate contacts, enough spacing, ESD protection, correct power sequencing, and by keeping pins within supply limits."
 
 [Back to index](./index.md)
 
@@ -1995,26 +2149,86 @@ This condition can remain even after the triggering event is removed, until powe
 
 **Written answer:**
 
-**Definition to remember:** A synchronous sequential circuit changes state according to a clock signal. An asynchronous sequential circuit does not use a global clock; its state can change directly in response to input changes. [[S37]](#s37)
+**Definition to remember:** A synchronous sequential circuit uses a clock signal, so storage elements change state only at defined clock events, such as a rising or falling edge. An asynchronous sequential circuit does not use a global clock; its state/output can change whenever inputs change and internal delays settle. [[S37]](#s37) [[S50]](#s50)
 
 | Point | Synchronous circuit | Asynchronous circuit |
 |---|---|---|
 | Clock | Uses a clock | No global clock |
-| State change | At clock edge or clock level | When inputs change and delays settle |
-| Timing control | Easier because timing is clock-based | Harder because timing depends on gate/path delays |
-| Design difficulty | Easier to design and verify | More difficult due to races and hazards |
-| Speed | Limited by clock period | Can be faster because it need not wait for clock |
-| Power | Clock network consumes power | No global clock power, but design is harder |
-| Memory elements | Flip-flops/registers commonly used | Latches, feedback paths, or delay elements may be used |
-| Examples | Registers, counters, synchronous FSMs | Handshake circuits, ripple counters, self-timed circuits |
+| State change | At defined clock edges or clock levels | Immediately after input changes, depending on circuit delay |
+| Timing reference | Clock period controls operation | Propagation delays and feedback paths control operation |
+| Storage elements | Flip-flops/registers are common | Latches, feedback paths, or unclocked storage can be used |
+| Predictability | More predictable because updates happen at clock boundaries | Less predictable unless delay/race conditions are carefully controlled |
+| Timing analysis | Setup, hold, clock skew, clock-to-Q, max frequency | Races, hazards, stable states, fundamental-mode assumptions |
+| Design difficulty | Easier to design, simulate, synthesize, and test | Harder to design and verify |
+| Speed | Limited by worst-case clock period | Can be faster because it does not wait for a global clock |
+| Power | Clock tree consumes dynamic power | No global clock tree, so potential power saving |
+| Common use | Most CPUs, registers, counters, synchronous FSMs, pipelines | Handshake circuits, self-timed circuits, ripple counters, some interfaces |
+
+**How synchronous circuits work:**
+
+In a synchronous circuit, all important state elements are controlled by the clock. The input may change between clock edges, but the state is captured only at the active edge. This gives a clean design rule:
+
+```text
+Current state + input -> combinational logic -> next state
+Next state is stored only at the clock edge
+```
+
+That is why synchronous design is easier to analyze. We mainly check setup time, hold time, clock skew, and whether the combinational logic delay fits inside the clock period. [[S4]](#s4)
+
+**How asynchronous circuits work:**
+
+In an asynchronous circuit, there is no global clock edge telling all storage elements when to update. The circuit reacts directly to input changes. The next state depends on logic delays and feedback paths:
+
+```text
+Input changes -> internal signals change after gate delays -> circuit reaches a new stable state
+```
+
+This can be fast, but it also means delay differences matter. If two internal signals change at different times, the circuit may temporarily go through an unwanted state. This creates race and hazard problems if not designed carefully. [[S50]](#s50)
+
+**Advantages of synchronous circuits:**
+
+1. Easier timing analysis because the clock defines update points.
+2. Easier to design using flip-flops, registers, and FSMs.
+3. Easier to synthesize and verify with standard EDA tools.
+4. More predictable behavior in large systems.
+5. Common design style for processors, digital controllers, pipelines, and SoCs.
+
+**Disadvantages of synchronous circuits:**
+
+1. Clock tree consumes power.
+2. Maximum speed is limited by worst-case path delay.
+3. Clock skew and jitter must be controlled.
+4. Every block may wait for the clock even if some operations finish early.
+
+**Advantages of asynchronous circuits:**
+
+1. No global clock tree, so potential power saving.
+2. Can be faster in some cases because operation happens when data is ready.
+3. Useful for handshake-based communication and some clock-domain/interface designs.
+4. Can reduce electromagnetic noise from a large global clock.
+
+**Disadvantages of asynchronous circuits:**
+
+1. More difficult to design correctly.
+2. Sensitive to gate delays, wire delays, races, and hazards.
+3. Harder to test and verify.
+4. Tool support is less straightforward than synchronous RTL flow.
+5. Glitches can become functional problems, not just temporary waveform noise.
 
 **Important interview point:**
 
-Most modern digital systems are mainly synchronous because clocked design is easier to analyze, simulate, synthesize, and test. Asynchronous circuits can be faster or lower power in some cases, but they are more difficult because races, hazards, and delay assumptions become critical.
+Most modern digital systems are mainly synchronous because clocked design is easier to analyze, simulate, synthesize, and test. Asynchronous circuits can be useful and even faster/lower power in some situations, but they require careful handling of races, hazards, and delay assumptions.
+
+**One-line summary:**
+
+```text
+Synchronous = clock controls state changes.
+Asynchronous = input changes and circuit delays control state changes.
+```
 
 **Speak like this:**
 
-"A synchronous circuit uses a clock, so state changes happen at defined clock edges or clock levels. This makes design and timing analysis easier. An asynchronous circuit does not use a global clock; it reacts directly to input changes and internal delays. Because of that, asynchronous circuits can be faster in some cases, but they are harder to design due to races and hazards. In practice, most large digital systems are synchronous."
+"A synchronous circuit uses a clock, so state changes happen only at defined clock edges or clock levels. That makes behavior predictable, because I can check setup time, hold time, clock-to-Q delay, and clock period. An asynchronous circuit does not use a global clock. It responds directly to input changes, and the final state depends on gate delays and feedback paths. Because it does not wait for a clock, it can be fast and may save clock power, but it is harder to design because races, hazards, and delay assumptions become critical. So in practice, most large digital systems are synchronous, while asynchronous design is used carefully in special cases like handshaking, ripple counters, or self-timed circuits."
 
 [Back to index](./index.md)
 
@@ -2133,9 +2347,9 @@ endmodule
 
 **Written answer:**
 
-**Definition to remember:** FIFO means First-In, First-Out. It is a queue or buffer where the first data written into it is the first data read out. [[S38]](#s38) [[S39]](#s39)
+**Definition to remember:** FIFO means First-In, First-Out. It is an ordered queue or memory buffer in which the first data item accepted on the write side becomes the first data item available on the read side. In other words, a FIFO always outputs the oldest unread entry first. [[S38]](#s38) [[S39]](#s39) [[S44]](#s44)
 
-In digital design, a FIFO is used to temporarily store data between two blocks. It preserves the order of data.
+In digital design, a FIFO is used as a temporary hardware buffer between two blocks while preserving data order. One block writes data into the FIFO, another block reads data out of it, and the FIFO keeps the sequence unchanged. This is especially useful when the producer and consumer work at different speeds, or when data must safely move between different clock domains. [[S39]](#s39)
 
 **Basic FIFO idea:**
 
@@ -2189,24 +2403,65 @@ An asynchronous FIFO is commonly used for clock-domain crossing because it safel
 [Back to index](./index.md)
 
 <a id="q47"></a>
-## 47. Difference between behavioral code, RTL code, and testbench code.
+## 47. Difference between behavioral, dataflow, structural, RTL, and testbench code.
 
 **Written answer:**
 
-**Definition to remember:** Behavioral code describes what the design should do. RTL code describes synthesizable register-transfer behavior, meaning registers and combinational logic between registers. Testbench code is verification code used to stimulate and check the design in simulation. [[S5]](#s5) [[S13]](#s13)
+**Definition to remember:** Verilog can describe hardware at different abstraction levels. Structural modeling describes the circuit by connecting gates or modules. Dataflow modeling describes logic using continuous assignments and expressions. Behavioral modeling describes operation using procedural blocks like `always` and `initial`. RTL is the synthesizable design style that describes registers and combinational logic between registers. A testbench is simulation-only verification code used to apply inputs and check outputs. [[S5]](#s5) [[S13]](#s13) [[S51]](#s51)
 
-| Point | Behavioral code | RTL code | Testbench code |
-|---|---|---|---|
-| Main purpose | Describe functionality | Describe hardware that can be synthesized | Verify the design |
-| Hardware mapping | May or may not map directly to hardware | Should map to real hardware | Usually not synthesized |
-| Used for | Modeling behavior, algorithms, simple descriptions | Actual design implementation | Simulation, checking, stimulus |
-| Typical constructs | `always`, `case`, `if`, functions, high-level logic | `always @(posedge clk)`, `always @(*)`, `assign` | `initial`, delays `#`, clock generation, tasks |
-| Synthesizable? | Depends on coding style | Yes, if written correctly | Usually no |
-| Example use | "What should the circuit do?" | "What registers and logic implement it?" | "Does the design work?" |
+### Main Verilog modeling styles
 
-**Behavioral code example:**
+| Style | Definition | Common constructs | Synthesizable? | Best used for |
+|---|---|---|---|---|
+| Structural modeling | Describes hardware by instantiating gates, primitives, or submodules and wiring them together | Gate primitives like `and`, `or`, `not`, module instantiation | Yes, if primitives/modules are synthesizable | Netlists, gate-level design, connecting blocks |
+| Dataflow modeling | Describes logic as equations showing how outputs are continuously driven from inputs | `assign`, operators like `&`, `|`, `^`, `?:` | Usually yes for combinational logic | Combinational equations, muxes, adders, Boolean logic |
+| Behavioral modeling | Describes what the circuit does using procedural statements | `always`, `initial`, `if`, `case`, loops, tasks | Depends on constructs | Algorithms, FSMs, sequential/combinational RTL, simulation models |
+| RTL modeling | Synthesizable register-transfer description of hardware | `always @(posedge clk)`, `always @(*)`, `assign`, registers, next-state logic | Yes, when written in synthesizable style | Actual FPGA/ASIC design |
+| Testbench modeling | Simulation code that verifies the design under test | `initial`, `#` delays, clock generation, `$display`, `$monitor`, `$finish` | Usually no | Applying stimulus and checking outputs |
+| Switch-level modeling | Low-level transistor/switch description | `nmos`, `pmos`, `cmos`, `tran`, `pullup`, `pulldown` | Not normal RTL flow | Teaching, device/switch-level experiments |
 
-This describes functionality at a high level.
+### 1. Structural modeling
+
+**Definition:** Structural modeling describes the exact interconnection of hardware blocks. Instead of writing an equation directly, we instantiate gates or modules and connect wires between them. Verilog supports gate primitives and module instantiation for this style. [[S5]](#s5) [[S51]](#s51)
+
+**Example:**
+
+```verilog
+module and_structural (
+    input  a,
+    input  b,
+    output y
+);
+and g1 (y, a, b);
+endmodule
+```
+
+**Interview point:** Structural code tells the tool, "use these blocks and connect them like this." It is close to a circuit diagram or netlist.
+
+### 2. Dataflow modeling
+
+**Definition:** Dataflow modeling describes logic using continuous assignments. The left-hand side is continuously driven by the expression on the right-hand side, and whenever an input in the expression changes, the output is recomputed. [[S5]](#s5) [[S51]](#s51)
+
+**Example:**
+
+```verilog
+module mux_dataflow (
+    input  a,
+    input  b,
+    input  sel,
+    output y
+);
+assign y = sel ? b : a;
+endmodule
+```
+
+**Interview point:** Dataflow style is very common for combinational logic because it directly expresses Boolean equations and data movement.
+
+### 3. Behavioral modeling
+
+**Definition:** Behavioral modeling describes the behavior or algorithm of the circuit using procedural blocks such as `always` and `initial`. It focuses more on "what should happen" than on directly listing gates. [[S5]](#s5) [[S51]](#s51)
+
+**Example:**
 
 ```verilog
 always @(*) begin
@@ -2219,11 +2474,11 @@ always @(*) begin
 end
 ```
 
-This can still be synthesizable if it uses synthesizable constructs.
+**Important:** Behavioral code can be synthesizable or non-synthesizable. If it uses synthesizable constructs and describes real hardware, it can become RTL. If it uses delays, file operations, or pure simulation constructs, it is not normal RTL.
 
-**RTL code example:**
+### 4. RTL code
 
-RTL is more directly register and transfer based.
+**Definition:** RTL means Register Transfer Level. It describes how data is stored in registers and how combinational logic computes the next values transferred between registers. RTL is the normal synthesizable coding level used for FPGA/ASIC design. [[S13]](#s13)
 
 ```verilog
 always @(posedge clk) begin
@@ -2236,9 +2491,13 @@ end
 assign y = q & enable;
 ```
 
-Here, `q` clearly infers a flip-flop, and `y` is combinational logic from the register output.
+Here, `q` is a flip-flop/register, and `y` is combinational logic from the register output.
 
-**Testbench code example:**
+**Interview point:** RTL is not a separate Verilog keyword. It is a design style. RTL commonly uses behavioral procedural blocks and dataflow assignments, but it must be written so synthesis can infer real hardware.
+
+### 5. Testbench code
+
+**Definition:** A testbench is not the hardware design itself. It is simulation code that instantiates the design under test, generates inputs, drives clocks/resets, observes outputs, and checks whether the design behaves correctly. [[S5]](#s5) [[S13]](#s13)
 
 ```verilog
 initial begin
@@ -2256,17 +2515,23 @@ initial begin
 end
 ```
 
-This is for simulation only. The `#` delays and `$finish` are not normal synthesizable RTL design constructs.
+This is for simulation only. The `#` delays, `forever` clock generation, and `$finish` are not normal synthesizable RTL design constructs.
 
-**How to identify them quickly:**
+### Quick identification
 
-1. If it uses real clocked registers and synthesizable combinational logic, it is RTL.
-2. If it uses delays, random stimulus, `$display`, `$finish`, or clock generation for simulation, it is testbench.
-3. If it describes function at a high level, it is behavioral. It may be synthesizable or non-synthesizable depending on the constructs.
+1. If code instantiates gates or submodules, it is structural.
+2. If code uses `assign` equations, it is dataflow.
+3. If code uses `always`, `initial`, `if`, `case`, or loops, it is behavioral/procedural.
+4. If behavioral/dataflow code describes real registers and combinational logic for synthesis, it is RTL.
+5. If code generates stimulus, clocks, checks outputs, uses `#` delays, `$display`, `$monitor`, or `$finish`, it is testbench.
+
+**Important interview distinction:**
+
+Behavioral, dataflow, and structural are modeling styles. RTL is a synthesizable abstraction level used for real design. A testbench is verification code, not the design. One Verilog file can also mix styles. For example, an RTL module may use `always @(posedge clk)` for registers, `assign` for combinational logic, and module instantiation structurally to connect sub-blocks.
 
 **Speak like this:**
 
-"Behavioral code describes what the circuit should do. RTL code describes the actual synthesizable register-transfer structure: flip-flops, registers, and combinational logic between them. Testbench code is not the design; it is used to verify the design by applying inputs and checking outputs in simulation. So the main difference is purpose: behavioral is functional description, RTL is hardware implementation, and testbench is verification."
+"Verilog has different modeling styles. Structural modeling describes hardware by instantiating gates or submodules and connecting wires. Dataflow modeling uses continuous `assign` statements to describe Boolean equations or data movement. Behavioral modeling uses procedural blocks like `always` and `initial` with `if`, `case`, and loops to describe behavior. RTL is the synthesizable register-transfer style where I describe flip-flops, registers, and combinational logic between them. Testbench code is different: it is not the hardware design; it is simulation code used to generate clocks, apply stimulus, and check outputs. So behavioral, dataflow, and structural are ways to describe hardware, RTL is the synthesizable design level, and testbench is for verification."
 
 [Back to index](./index.md)
 
@@ -2275,16 +2540,27 @@ This is for simulation only. The `#` delays and `$finish` are not normal synthes
 
 **Written answer:**
 
-**Definition to remember:** In Verilog, `initial` executes once at the beginning of simulation, while `always` executes repeatedly whenever its event control or delay condition triggers. [[S5]](#s5) [[S14]](#s14)
+**Definition to remember:** In Verilog, `initial` and `always` are procedural blocks. An `initial` block starts at simulation time 0 and executes once. An `always` block also starts at simulation time 0, but after reaching the end of the block it repeats forever, so it must contain some timing control such as an event control `@(...)`, a delay `#...`, or a wait condition to stop it from executing continuously at the same simulation time. [[S5]](#s5) [[S14]](#s14) [[S52]](#s52)
 
 | Point | `initial` block | `always` block |
 |---|---|---|
-| Execution | Runs once | Runs repeatedly |
-| Start time | Starts at simulation time 0 | Starts at simulation time 0, then repeats based on event/delay |
-| Common use | Testbench setup, stimulus, initialization | RTL combinational logic, sequential logic, testbench clocks |
-| Synthesizable? | Usually testbench-only; limited FPGA initialization cases exist | Synthesizable when written in proper RTL style |
-| Event control | Not required | Usually needs event control or delay |
-| Example | Reset stimulus | Flip-flop or combinational block |
+| Execution count | Runs once | Repeats forever |
+| Start time | Starts at simulation time 0 | Starts at simulation time 0 |
+| What happens after end | Stops permanently | Jumps back to the beginning of the block |
+| Timing control | Optional | Required in practice, otherwise zero-time loop can happen |
+| Common RTL use | Generally avoided in ASIC RTL; limited FPGA initialization cases | Main block for combinational and sequential RTL |
+| Common testbench use | Initialization, stimulus, file setup, reset sequence | Clock generation, monitors, repeated stimulus |
+| Synthesizable? | Usually not for ASIC RTL; limited synthesis support in FPGA flows | Synthesizable when written as proper RTL |
+| Typical examples | `initial begin ... end` | `always @(posedge clk)`, `always @(*)`, `always #5 clk = ~clk` |
+
+**Key idea:**
+
+```text
+initial = run once
+always  = run forever
+```
+
+Because `always` runs forever, it must include something that advances simulation time or waits for an event.
 
 **`initial` example:**
 
@@ -2296,6 +2572,19 @@ end
 ```
 
 This runs once in simulation.
+
+**`initial` in testbench:**
+
+```verilog
+initial begin
+    clk = 1'b0;
+    rst = 1'b1;
+    #20 rst = 1'b0;
+    #100 $finish;
+end
+```
+
+This is typical testbench code because it uses delays and `$finish`.
 
 **`always` example for sequential RTL:**
 
@@ -2320,7 +2609,7 @@ end
 
 This runs whenever any right-hand-side signal changes.
 
-**Important warning:**
+**Why an `always` block without delay/event control creates a zero-time infinite loop:**
 
 An `always` block without delay or event control can create an infinite zero-time loop in simulation:
 
@@ -2330,15 +2619,99 @@ always begin
 end
 ```
 
+Reason:
+
+1. At simulation time 0, the `always` block starts.
+2. `clk = ~clk` executes immediately.
+3. There is no `#delay`, no `@(event)`, and no `wait`, so simulation time does not advance.
+4. The block reaches `end`.
+5. Because it is an `always` block, it immediately starts again.
+6. It toggles `clk` again at the same simulation time.
+7. This repeats forever at time 0, so the simulator hangs and time cannot move forward. [[S52]](#s52)
+
+In short:
+
+```text
+always repeats forever + no timing control = infinite loop at the same simulation time
+```
+
 Correct testbench clock:
 
 ```verilog
 always #5 clk = ~clk;
 ```
 
+Here, `#5` delays each execution by 5 time units. So simulation time advances:
+
+```text
+time 0  -> clk toggles
+time 5  -> clk toggles
+time 10 -> clk toggles
+...
+```
+
+**Equivalent safe style:**
+
+```verilog
+initial begin
+    clk = 1'b0;
+    forever #5 clk = ~clk;
+end
+```
+
+This is also common in testbenches.
+
+**RTL use of `always`:**
+
+1. **Sequential logic:**
+
+```verilog
+always @(posedge clk) begin
+    q <= d;
+end
+```
+
+This waits for a clock edge. It infers a flip-flop.
+
+2. **Combinational logic:**
+
+```verilog
+always @(*) begin
+    y = (a & b) | c;
+end
+```
+
+This waits for changes in the signals used in the block. It infers combinational logic if all outputs are assigned in all cases.
+
+3. **Testbench clock:**
+
+```verilog
+always #5 clk = ~clk;
+```
+
+This is simulation-only because `#5` delay is not normal synthesizable RTL.
+
+**Common mistakes:**
+
+1. `always begin clk = ~clk; end`
+   This causes a zero-time infinite loop.
+
+2. Missing signals in a combinational sensitivity list in old Verilog:
+
+```verilog
+always @(a or b) begin
+    y = a & b & c;  // c missing from sensitivity list
+end
+```
+
+This can cause simulation mismatch. Use `always @(*)` for combinational Verilog.
+
+3. Using `initial` as if it creates hardware behavior in ASIC RTL.
+   In most RTL design, `initial` is for simulation/testbench, not normal synthesized hardware.
+
 **Speak like this:**
 
-"The `initial` block runs only once, usually at the start of simulation, so it is mainly used in testbenches for initialization and stimulus. The `always` block runs repeatedly whenever its sensitivity list, clock edge, or delay triggers. For RTL, I use `always @(posedge clk)` for sequential logic and `always @(*)` for combinational logic. In testbenches, `always #5 clk = ~clk` is commonly used to generate a clock."
+"The `initial` block starts at simulation time zero and runs only once, so I mainly use it in testbenches for initialization, reset stimulus, and `$finish`. The `always` block also starts at time zero, but it repeats forever. Because of that, it must have timing control like `@(posedge clk)`, `@(*)`, or `#5`. If I write `always begin clk = ~clk; end`, there is no delay or event wait, so the block toggles `clk`, reaches the end, immediately restarts, and keeps repeating at the same simulation time. Time never advances, so the simulator hangs in a zero-time infinite loop. For RTL, I use `always @(posedge clk)` for flip-flops and `always @(*)` for combinational logic. For a testbench clock, I use `always #5 clk = ~clk` or `forever #5 clk = ~clk` inside an `initial` block."
 
 [Back to index](./index.md)
 
@@ -2460,7 +2833,9 @@ assign not_out    = a ^ 1'b1;
 
 **Written answer:**
 
-**Definition to remember:** A sequence detector FSM checks a serial input stream and asserts output when a target bit pattern is detected. In a Mealy FSM, output is placed on transitions because output depends on present state and current input. [[S2]](#s2) [[S41]](#s41)
+**Definition to remember:** A finite state machine (FSM) is a sequential circuit with a finite set of states. In a digital implementation, it normally has three parts: a state register to store the present state, next-state logic to decide where to go next, and output logic to generate the required output. [[S2]](#s2) [[S53]](#s53)
+
+A sequence detector is an FSM that observes a serial input stream and asserts an output when a target bit pattern is detected. The states represent partial matches of the sequence. In a Mealy FSM, output depends on the present state and the current input, so the output is marked on transitions. [[S41]](#s41) [[S53]](#s53)
 
 Target sequence:
 
@@ -2894,3 +3269,33 @@ If someone says "latch has no clock", the better answer is: a basic latch may ha
 
 <a id="s43"></a>
 **S43. GeeksforGeeks, Johnson Counter:** https://www.geeksforgeeks.org/digital-logic/johnson-counter/
+
+<a id="s44"></a>
+**S44. NIST Dictionary of Algorithms and Data Structures, Queue:** https://xlinux.nist.gov/dads/HTML/queue.html
+
+<a id="s45"></a>
+**S45. Toshiba Electronic Devices, MOSFET Gate Drive Circuit:** https://toshiba.semicon-storage.com/info/TPH3R70APL_application_note_en_20180726_AKX00068.pdf?did=59460&prodName=TPH3R70APL
+
+<a id="s46"></a>
+**S46. Toshiba Electronic Devices, Power MOSFET Structure and Characteristics:** https://toshiba.semicon-storage.com/info/TK49N65W5_application_note_en_20180726_AKX00061.pdf?did=13413&prodName=TK49N65W5
+
+<a id="s47"></a>
+**S47. Arm, Microprocessor vs. Microcontroller:** https://www.arm.com/glossary/microprocessor-vs-microcontroller
+
+<a id="s48"></a>
+**S48. Analog Devices, Winning the Battle Against Latchup in CMOS Analog Switches:** https://www.analog.com/en/resources/technical-articles/winning-the-battle-against-latchup-in-cmos-analog-switches.html
+
+<a id="s49"></a>
+**S49. Texas Instruments, Latch-Up, ESD, and Other Phenomena:** https://www.ti.com/lit/an/slya014a/slya014a.pdf
+
+<a id="s50"></a>
+**S50. University of Iowa, Asynchronous Sequential Circuits:** https://homepage.divms.uiowa.edu/~jones/assem/fall07/notes/07seq.shtml
+
+<a id="s51"></a>
+**S51. Columbia University, Verilog HDL Modeling Styles:** https://www.cs.columbia.edu/~sedwards/classes/2015/4840/verilog.pdf
+
+<a id="s52"></a>
+**S52. ChipVerify, Verilog Always Block:** https://www.chipverify.com/verilog/verilog-always-block
+
+<a id="s53"></a>
+**S53. University of Washington CSE370, Introduction to Finite State Machines:** https://courses.cs.washington.edu/courses/cse370/DDOR/Tutorials/FSM/Intro.html
