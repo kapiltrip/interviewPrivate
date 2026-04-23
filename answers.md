@@ -3666,7 +3666,7 @@ In C, this is one instruction or statement executed when program control reaches
 
 **Speak like this:**
 
-"The main difference is that HDL describes hardware, while C describes software. In HDL, statements represent gates, registers, wires, and parallel hardware behavior. In C, statements are executed sequentially by a processor. HDL synthesis produces a hardware netlist, while C compilation produces machine code. So even if Verilog syntax looks like C, the meaning is different."
+"The main difference is the meaning of the code. C is a software programming language: the compiler converts the program into instructions, and a processor executes those instructions step by step. HDL is a hardware description language: the synthesis tool converts the description into actual hardware such as gates, flip-flops, muxes, adders, wires, and registers. So in HDL, two `always` blocks or two continuous assignments can represent hardware working at the same time, because real circuits operate in parallel. In C, statements normally execute sequentially unless we explicitly create parallelism using threads or hardware-specific support. Also, timing is different. In C, execution time depends on processor speed and instruction flow. In HDL, timing depends on clock edges, propagation delay, setup time, hold time, and paths between registers. So even if Verilog syntax looks similar to C, Verilog describes structure and behavior of hardware, while C describes an algorithm executed by existing hardware."
 
 [Back to index](./index.md)
 
@@ -3735,14 +3735,39 @@ This creates multiple procedural drivers for `q` and is not a clean RTL style. O
 
 | Feature | Verilog | C |
 |---|---|---|
-| Nature | Hardware description language | Software programming language |
-| Describes | Circuits | Instructions |
-| Runs on | Simulator or synthesized hardware | CPU/compiler/runtime |
-| Parallelism | Natural; many blocks active together | Sequential by default |
-| Main object | Modules, wires, regs/logic, always blocks | Functions, variables, pointers, loops |
-| Timing | Explicit clock/event behavior | Program order and CPU timing |
-| Assignment | Can infer combinational logic or registers | Updates a variable |
-| Testing | Testbench simulation | Unit tests/debugger/program output |
+| Basic purpose | Describes digital hardware | Describes software algorithms |
+| Final implementation | Synthesized into gates, flip-flops, muxes, adders, LUTs, memories, and interconnect | Compiled into machine instructions executed by a CPU |
+| Meaning of code | Code represents hardware structure and behavior | Code represents instruction flow |
+| Execution model | Concurrent by nature; modules, continuous assignments, and separate procedural blocks can all be active together | Sequential by default; statements execute in program order unless explicit parallel software mechanisms are used |
+| Where it runs | Simulates in a simulator, or becomes FPGA/ASIC hardware after synthesis | Runs on a processor through compiled machine code |
+| Main objects | `module`, `wire`, `reg`/`logic`, `assign`, `always`, module instances | Functions, variables, pointers, arrays, structs, loops |
+| Assignment meaning | Can describe a wire connection, combinational logic, or a register update depending on context | Updates a software variable in memory/registers when that statement executes |
+| Timing model | Clock edges, event controls, propagation delay, setup time, hold time, and path delay matter | Program order, instruction latency, CPU clock, memory access, and runtime behavior matter |
+| Parallelism example | Two `always @(posedge clk)` blocks can infer two registers updating on the same clock edge | Two assignment statements normally execute one after another |
+| Hardware resources | Writing more logic may create more physical hardware | Writing more code usually creates more instructions, not extra hardware units |
+| Test/verification | Uses testbenches, waveforms, assertions, and simulation | Uses unit tests, debugger, print/log output, and software test frameworks |
+| Common mistake | Reading Verilog like step-by-step C code | Thinking C statements automatically become parallel hardware |
+
+**Key interview point:**
+
+In C, this line means "when the CPU reaches this instruction, update the variable":
+
+```c
+y = a & b;
+```
+
+In Verilog, this line means "create continuous hardware logic that drives `y` from `a` and `b`":
+
+```verilog
+assign y = a & b;
+```
+
+So the syntax can look similar, but the mental model is different:
+
+```text
+C       -> instructions executed by existing hardware
+Verilog -> description used to create or simulate hardware
+```
 
 **Example difference:**
 
