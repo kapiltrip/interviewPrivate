@@ -58,4 +58,21 @@
 | 54 | [Which is faster: NAND or NOR? Why?](./answers.md#q54) |
 | 55 | [Draw waveform for latch and flip-flop.](./answers.md#q55) |
 | 56 | [Latch vs flip-flop.](./answers.md#q56) |
+| 57 | [Where will we use flip-flops?](./answers.md#q57) |
+| 58 | [Where will we use latches in sequential circuits?](./answers.md#q58) |
+| 59 | [Explain HDL.](./answers.md#q59) |
+| 60 | [Difference between HDL and C.](./answers.md#q60) |
+| 61 | [Explain concurrency in Verilog.](./answers.md#q61) |
+| 62 | [Verilog vs C.](./answers.md#q62) |
+| 63 | [Draw state diagram for 1010 non-overlapping sequence.](./answers.md#q63) |
+| 64 | [XOR as inverter and buffer.](./answers.md#q64) |
+| 65 | [Write Verilog code for D flip-flop.](./answers.md#q65) |
+| 66 | [How should I explain my project in an interview with component details?](./answers.md#q66) |
+| 67 | [Design D latch using 2:1 MUX.](./answers.md#q67) |
+| 68 | [Design a mod-4 up counter, draw truth table, and verify.](./answers.md#q68) |
+| 69 | [Level triggered and edge triggered.](./answers.md#q69) |
+| 70 | [Functions of flip-flop.](./answers.md#q70) |
+| 71 | [XNOR using MUX. Is MUX universal?](./answers.md#q71) |
+| 72 | [How to calculate FIFO depth.](./answers.md#q72) |
+| 73 | [Swap two variables using nonblocking assignment and blocking assignment.](./answers.md#q73) |
 | - | [Source References](./answers.md#sources) |

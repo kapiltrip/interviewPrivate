@@ -706,13 +706,69 @@ In SystemVerilog, `always_comb` is preferred for combinational logic because it 
 
 **Written answer:**
 
-Time borrowing is a latch-based timing technique. A level-sensitive latch remains transparent during its active clock level. If data arrives slightly late at that latch, the path can use part of the next stage's available time while the latch is still open. This is called borrowing time. [[S16]](#s16)
+**Definition to remember:** Time borrowing is a property of latch-based pipelines, not normal edge-triggered flip-flop pipelines. It is possible because a level-sensitive latch remains transparent during its active clock level. While the latch is transparent, late-arriving data can still pass through the latch and use part of the next stage's time. [[S16]](#s16) [[S56]](#s56)
 
-The important point is that borrowed time is not extra free time. If one path borrows time, the next path gets less time. So the total timing across the latch pipeline must still satisfy setup and hold requirements. [[S16]](#s16)
+**Why we need a latch instead of a flip-flop:**
+
+A flip-flop samples data only at a clock edge. After that edge, the flip-flop closes. If data reaches the flip-flop late after the required setup time, it cannot "borrow" from the next cycle; it simply violates setup timing.
+
+A latch is different. A latch is level-sensitive. During its active clock level, it is open or transparent. So if data arrives slightly late but still arrives before the latch closes, the data can pass into the next stage. That extra time used after the nominal boundary is called borrowed time.
+
+```text
+Flip-flop boundary:
+Data must arrive before the clock edge setup window.
+No transparency after the edge, so no normal time borrowing.
+
+Latch boundary:
+Data may arrive during the active latch-open window.
+If it arrives late but before latch closing, it can borrow time.
+```
+
+**Pipeline idea:**
+
+```text
+Stage 1 logic -> Latch 1 -> Stage 2 logic -> Latch 2
+```
+
+If Stage 1 is slightly slow, its output may pass through `Latch 1` while `Latch 1` is still transparent. That means Stage 1 has effectively used some time that would otherwise belong to Stage 2.
+
+**Important point: borrowed time is not free time.**
+
+If one stage borrows time, the next stage has less time available. So the overall timing across adjacent latch stages must still satisfy setup and hold requirements. [[S16]](#s16) [[S56]](#s56)
+
+**Simple numerical example:**
+
+Assume two latch-based stages together have `10 ns` total available time.
+
+```text
+Stage 1 planned time = 5 ns
+Stage 2 planned time = 5 ns
+```
+
+If Stage 1 actually takes `6 ns`, it borrows `1 ns` from Stage 2.
+
+```text
+Stage 1 uses = 6 ns
+Stage 2 left = 4 ns
+Total still = 10 ns
+```
+
+So time borrowing helps balance uneven stage delays, but it does not increase the total cycle budget.
+
+**When it is used:**
+
+1. Latch-based pipelines.
+2. High-speed ASIC datapaths.
+3. Designs where one stage is slightly slower and the next stage has slack.
+4. Timing optimization with two-phase latch clocks.
+
+**Interview warning:**
+
+Do not say "flip-flops borrow time" in the normal sense. The standard time-borrowing concept comes from latch transparency. Flip-flop-based pipelines are easier to analyze, but they do not provide this latch-open window.
 
 **Speak like this:**
 
-"Time borrowing is a timing advantage of latch-based design. Since a latch is level sensitive, it stays transparent during the active clock level. If one path is slightly late, it can pass through the latch while the latch is still open and use some time from the next stage. But that borrowed time reduces the timing margin of the next path, so the overall pipeline timing must still be checked carefully."
+"Time borrowing is possible because we use latches instead of normal edge-triggered flip-flops. A flip-flop samples only at the clock edge, so if data misses setup time, it cannot use time from the next stage. But a latch is level-sensitive and remains transparent during its active clock level. If data arrives slightly late but before the latch closes, it can still pass through, so the previous stage borrows some time from the next stage. The important point is that this is not free extra time. Whatever time is borrowed from the next stage is subtracted from that next stage's timing margin, so setup and hold timing must still be checked across the latch pipeline."
 
 [Back to index](./index.md)
 
@@ -2407,22 +2463,40 @@ An asynchronous FIFO is commonly used for clock-domain crossing because it safel
 
 **Written answer:**
 
-**Definition to remember:** Verilog can describe hardware at different abstraction levels. Structural modeling describes the circuit by connecting gates or modules. Dataflow modeling describes logic using continuous assignments and expressions. Behavioral modeling describes operation using procedural blocks like `always` and `initial`. RTL is the synthesizable design style that describes registers and combinational logic between registers. A testbench is simulation-only verification code used to apply inputs and check outputs. [[S5]](#s5) [[S13]](#s13) [[S51]](#s51)
+**Definition to remember:** Verilog has multiple ways to describe a digital system. Structural, dataflow, and behavioral are modeling styles. RTL is a synthesizable design abstraction that describes registers and the combinational logic between registers. A testbench is not the design hardware; it is simulation code used to verify the design by applying inputs, generating clocks/resets, observing outputs, and checking correctness. [[S5]](#s5) [[S13]](#s13) [[S51]](#s51)
+
+The clean interview distinction is:
+
+```text
+Structural / Dataflow / Behavioral = ways to write or model hardware
+RTL = synthesizable hardware design level
+Testbench = simulation and verification environment
+```
 
 ### Main Verilog modeling styles
 
-| Style | Definition | Common constructs | Synthesizable? | Best used for |
+| Topic | What it means | Common constructs | Synthesis meaning | Typical use |
 |---|---|---|---|---|
-| Structural modeling | Describes hardware by instantiating gates, primitives, or submodules and wiring them together | Gate primitives like `and`, `or`, `not`, module instantiation | Yes, if primitives/modules are synthesizable | Netlists, gate-level design, connecting blocks |
-| Dataflow modeling | Describes logic as equations showing how outputs are continuously driven from inputs | `assign`, operators like `&`, `|`, `^`, `?:` | Usually yes for combinational logic | Combinational equations, muxes, adders, Boolean logic |
-| Behavioral modeling | Describes what the circuit does using procedural statements | `always`, `initial`, `if`, `case`, loops, tasks | Depends on constructs | Algorithms, FSMs, sequential/combinational RTL, simulation models |
-| RTL modeling | Synthesizable register-transfer description of hardware | `always @(posedge clk)`, `always @(*)`, `assign`, registers, next-state logic | Yes, when written in synthesizable style | Actual FPGA/ASIC design |
-| Testbench modeling | Simulation code that verifies the design under test | `initial`, `#` delays, clock generation, `$display`, `$monitor`, `$finish` | Usually no | Applying stimulus and checking outputs |
-| Switch-level modeling | Low-level transistor/switch description | `nmos`, `pmos`, `cmos`, `tran`, `pullup`, `pulldown` | Not normal RTL flow | Teaching, device/switch-level experiments |
+| Structural modeling | Describes the circuit as interconnected components | Gate primitives, module instantiation, wires | Synthesizable if the instantiated blocks are synthesizable | Netlists, gate-level circuits, connecting already-built modules |
+| Dataflow modeling | Describes how data flows through equations | `assign`, operators, ternary `?:`, reductions | Usually synthesizable for combinational logic | Boolean equations, muxes, decoders, adders |
+| Behavioral modeling | Describes behavior using procedural statements | `always`, `initial`, `if`, `case`, loops, tasks | Synthesizable only when written with synthesis-safe constructs | Combinational RTL, sequential RTL, FSMs, algorithms, simulation models |
+| RTL modeling | Describes registers plus combinational logic between registers | `always @(posedge clk)`, `always @(*)`, `assign`, next-state logic | Intended for synthesis into flip-flops, gates, muxes, adders, etc. | Real FPGA/ASIC design |
+| Testbench code | Verifies the design in simulation | `initial`, `#` delays, clock/reset generation, `$display`, `$monitor`, `$finish`, checkers | Usually not synthesizable | Stimulus, monitors, scoreboards, expected-output checks |
+| Switch-level modeling | Describes transistor/switch behavior | `nmos`, `pmos`, `cmos`, `tran`, `pullup`, `pulldown` | Not normal RTL synthesis flow | Device-level teaching or special low-level experiments |
+
+### The important difference
+
+Structural, dataflow, and behavioral are about **how the design is written**.
+
+RTL is about **whether the description represents real synthesizable hardware at register-transfer level**.
+
+Testbench code is about **verification**, so it can use simulation-only constructs that are not meant to become hardware.
 
 ### 1. Structural modeling
 
-**Definition:** Structural modeling describes the exact interconnection of hardware blocks. Instead of writing an equation directly, we instantiate gates or modules and connect wires between them. Verilog supports gate primitives and module instantiation for this style. [[S5]](#s5) [[S51]](#s51)
+**Definition:** Structural modeling describes hardware by explicitly instantiating lower-level blocks and connecting them using nets. It is like drawing a circuit diagram in code: "this gate/module output connects to this wire, and this wire goes into the next gate/module." Verilog supports gate primitives and module instantiation for this style. [[S5]](#s5) [[S51]](#s51)
+
+Use structural modeling when the interconnection itself matters, for example gate-level netlists, top-level module connection, or when building a larger design from smaller verified modules.
 
 **Example:**
 
@@ -2436,11 +2510,15 @@ and g1 (y, a, b);
 endmodule
 ```
 
-**Interview point:** Structural code tells the tool, "use these blocks and connect them like this." It is close to a circuit diagram or netlist.
+**Synthesis view:** The synthesis tool sees actual instances and connections. If the instantiated blocks are synthesizable, the structural design is synthesizable.
+
+**Interview point:** Structural code answers "what blocks are connected?" It is closest to a schematic or netlist.
 
 ### 2. Dataflow modeling
 
-**Definition:** Dataflow modeling describes logic using continuous assignments. The left-hand side is continuously driven by the expression on the right-hand side, and whenever an input in the expression changes, the output is recomputed. [[S5]](#s5) [[S51]](#s51)
+**Definition:** Dataflow modeling describes hardware using continuous assignments. The left-hand side is continuously driven by the right-hand-side expression, so whenever any input in the expression changes, the output is updated by simulation and synthesis treats it as combinational logic. [[S5]](#s5) [[S51]](#s51)
+
+Use dataflow modeling when the circuit is naturally an equation: mux logic, Boolean equations, adders, decoders, comparators, simple ALU expressions, and assign-based glue logic.
 
 **Example:**
 
@@ -2455,11 +2533,18 @@ assign y = sel ? b : a;
 endmodule
 ```
 
-**Interview point:** Dataflow style is very common for combinational logic because it directly expresses Boolean equations and data movement.
+**Synthesis view:** `assign y = sel ? b : a;` usually infers a 2:1 mux. `assign y = a & b;` infers an AND function. The designer writes the equation, and synthesis chooses gates/cells to implement it.
+
+**Interview point:** Dataflow code answers "what equation continuously drives this signal?"
 
 ### 3. Behavioral modeling
 
-**Definition:** Behavioral modeling describes the behavior or algorithm of the circuit using procedural blocks such as `always` and `initial`. It focuses more on "what should happen" than on directly listing gates. [[S5]](#s5) [[S51]](#s51)
+**Definition:** Behavioral modeling describes what the design should do using procedural statements. It uses blocks such as `always` and `initial`, and statements such as `if`, `case`, loops, tasks, and functions. It is more abstract than structural or dataflow modeling because it focuses on behavior rather than direct gate connections. [[S5]](#s5) [[S51]](#s51)
+
+Behavioral code has two possible meanings:
+
+1. **Synthesizable behavioral RTL:** written in a hardware-friendly way, such as `always @(*)` for combinational logic or `always @(posedge clk)` for flip-flops.
+2. **Simulation-only behavioral code:** uses delays, file I/O, random stimulus, `$display`, `$finish`, or testbench-only constructs.
 
 **Example:**
 
@@ -2474,11 +2559,18 @@ always @(*) begin
 end
 ```
 
-**Important:** Behavioral code can be synthesizable or non-synthesizable. If it uses synthesizable constructs and describes real hardware, it can become RTL. If it uses delays, file operations, or pure simulation constructs, it is not normal RTL.
+**Synthesis view:** If the `always` block has a complete combinational assignment style, it can infer combinational logic such as muxes. If it is edge-triggered, it can infer flip-flops. If it uses simulation delays or unsupported constructs, it is not normal synthesizable RTL.
+
+**Important:** Behavioral does not automatically mean "not synthesizable." Many real RTL designs are written using behavioral `always` blocks. The question is whether the behavior maps to real hardware.
 
 ### 4. RTL code
 
-**Definition:** RTL means Register Transfer Level. It describes how data is stored in registers and how combinational logic computes the next values transferred between registers. RTL is the normal synthesizable coding level used for FPGA/ASIC design. [[S13]](#s13)
+**Definition:** RTL means Register Transfer Level. It describes a design in terms of state elements/registers and the combinational logic that computes the values transferred into those registers on clock edges. RTL is the normal design level used for FPGA and ASIC synthesis. [[S13]](#s13) [[S51]](#s51)
+
+RTL usually has two parts:
+
+1. **Sequential logic:** flip-flops/registers updated on a clock edge.
+2. **Combinational logic:** equations, muxes, adders, comparators, and next-state logic between registers.
 
 ```verilog
 always @(posedge clk) begin
@@ -2493,11 +2585,42 @@ assign y = q & enable;
 
 Here, `q` is a flip-flop/register, and `y` is combinational logic from the register output.
 
-**Interview point:** RTL is not a separate Verilog keyword. It is a design style. RTL commonly uses behavioral procedural blocks and dataflow assignments, but it must be written so synthesis can infer real hardware.
+**Common RTL coding pattern:**
+
+```verilog
+// Sequential register
+always @(posedge clk) begin
+    if (rst)
+        state <= IDLE;
+    else
+        state <= next_state;
+end
+
+// Combinational next-state logic
+always @(*) begin
+    next_state = state;
+    case (state)
+        IDLE: if (start) next_state = BUSY;
+        BUSY: if (done)  next_state = IDLE;
+    endcase
+end
+```
+
+**Synthesis view:** The first block infers flip-flops. The second block infers combinational logic. Together, they form an FSM-style RTL design.
+
+**Interview point:** RTL is not a Verilog keyword. It is a disciplined synthesizable design style. RTL may use behavioral blocks, dataflow assignments, and structural instantiations together.
 
 ### 5. Testbench code
 
-**Definition:** A testbench is not the hardware design itself. It is simulation code that instantiates the design under test, generates inputs, drives clocks/resets, observes outputs, and checks whether the design behaves correctly. [[S5]](#s5) [[S13]](#s13)
+**Definition:** A testbench is a simulation environment around the design under test (DUT). It instantiates the DUT, generates clocks and resets, applies input stimulus, observes outputs, compares actual results with expected results, and ends the simulation. [[S5]](#s5) [[S13]](#s13)
+
+A good testbench commonly contains:
+
+1. **DUT instantiation:** connects to the module being tested.
+2. **Clock/reset generation:** creates simulation timing.
+3. **Stimulus driver:** applies input cases.
+4. **Monitor/checker:** observes and verifies outputs.
+5. **Finish condition:** stops simulation using `$finish`.
 
 ```verilog
 initial begin
@@ -2517,6 +2640,32 @@ end
 
 This is for simulation only. The `#` delays, `forever` clock generation, and `$finish` are not normal synthesizable RTL design constructs.
 
+### Behavioral vs RTL vs testbench
+
+This is a common interview confusion:
+
+| Code type | Meaning |
+|---|---|
+| Behavioral code | Uses procedural statements to describe behavior |
+| RTL code | Synthesizable hardware description at register-transfer level |
+| Testbench code | Simulation-only code to verify the RTL |
+
+So behavioral code can be RTL if it is written in a synthesizable style. Testbench code is also often behavioral, but it is not RTL because it uses simulation-only constructs.
+
+Example:
+
+```verilog
+// Behavioral and synthesizable RTL
+always @(posedge clk)
+    q <= d;
+
+// Behavioral but testbench-only
+initial begin
+    #10 d = 1'b1;
+    #20 $finish;
+end
+```
+
 ### Quick identification
 
 1. If code instantiates gates or submodules, it is structural.
@@ -2524,14 +2673,27 @@ This is for simulation only. The `#` delays, `forever` clock generation, and `$f
 3. If code uses `always`, `initial`, `if`, `case`, or loops, it is behavioral/procedural.
 4. If behavioral/dataflow code describes real registers and combinational logic for synthesis, it is RTL.
 5. If code generates stimulus, clocks, checks outputs, uses `#` delays, `$display`, `$monitor`, or `$finish`, it is testbench.
+6. If code uses transistor primitives like `nmos`, `pmos`, or `tran`, it is switch-level modeling.
 
 **Important interview distinction:**
 
 Behavioral, dataflow, and structural are modeling styles. RTL is a synthesizable abstraction level used for real design. A testbench is verification code, not the design. One Verilog file can also mix styles. For example, an RTL module may use `always @(posedge clk)` for registers, `assign` for combinational logic, and module instantiation structurally to connect sub-blocks.
 
+Also remember: a signal declared as `reg` in Verilog does not always mean a physical register. In older Verilog, `reg` often just means "assigned inside a procedural block." A real flip-flop is inferred from edge-triggered RTL such as `always @(posedge clk)`, not just from the word `reg`.
+
+### Interview-safe summary table
+
+| If interviewer asks | Answer in one line |
+|---|---|
+| Structural | I describe the exact hardware connection using gates or module instances. |
+| Dataflow | I describe continuous equations using `assign`; it is best for combinational logic. |
+| Behavioral | I describe operation using procedural blocks like `always` and `initial`; it may or may not be synthesizable. |
+| RTL | I describe real synthesizable hardware using registers and combinational logic between registers. |
+| Testbench | I write simulation-only code to verify the DUT by driving inputs and checking outputs. |
+
 **Speak like this:**
 
-"Verilog has different modeling styles. Structural modeling describes hardware by instantiating gates or submodules and connecting wires. Dataflow modeling uses continuous `assign` statements to describe Boolean equations or data movement. Behavioral modeling uses procedural blocks like `always` and `initial` with `if`, `case`, and loops to describe behavior. RTL is the synthesizable register-transfer style where I describe flip-flops, registers, and combinational logic between them. Testbench code is different: it is not the hardware design; it is simulation code used to generate clocks, apply stimulus, and check outputs. So behavioral, dataflow, and structural are ways to describe hardware, RTL is the synthesizable design level, and testbench is for verification."
+"I separate these terms into modeling style, design level, and verification code. Structural modeling means I instantiate gates or modules and connect wires, so it looks like a schematic. Dataflow modeling means I use continuous `assign` statements and equations, so it is mainly used for combinational logic. Behavioral modeling means I use procedural blocks like `always` and `initial` with `if`, `case`, and loops to describe what should happen. RTL is the synthesizable register-transfer style: I describe flip-flops/registers and the combinational logic between them. A testbench is different from all of these because it is not the hardware design; it is simulation code that drives clocks, resets, inputs, and checks outputs. So behavioral code can be RTL if it is synthesizable, but behavioral testbench code with delays and `$finish` is not RTL."
 
 [Back to index](./index.md)
 
@@ -2540,18 +2702,22 @@ Behavioral, dataflow, and structural are modeling styles. RTL is a synthesizable
 
 **Written answer:**
 
-**Definition to remember:** In Verilog, `initial` and `always` are procedural blocks. An `initial` block starts at simulation time 0 and executes once. An `always` block also starts at simulation time 0, but after reaching the end of the block it repeats forever, so it must contain some timing control such as an event control `@(...)`, a delay `#...`, or a wait condition to stop it from executing continuously at the same simulation time. [[S5]](#s5) [[S14]](#s14) [[S52]](#s52)
+**Definition to remember:** In Verilog, `initial` and `always` are procedural blocks. Both are enabled when simulation starts. An `initial` block executes once and then stops. An `always` block executes repeatedly forever, so it must contain a timing control such as an event control `@(...)`, delay control `#...`, or `wait` statement; otherwise it can keep executing at the same simulation time. [[S5]](#s5) [[S14]](#s14) [[S52]](#s52)
 
 | Point | `initial` block | `always` block |
 |---|---|---|
 | Execution count | Runs once | Repeats forever |
 | Start time | Starts at simulation time 0 | Starts at simulation time 0 |
-| What happens after end | Stops permanently | Jumps back to the beginning of the block |
-| Timing control | Optional | Required in practice, otherwise zero-time loop can happen |
-| Common RTL use | Generally avoided in ASIC RTL; limited FPGA initialization cases | Main block for combinational and sequential RTL |
-| Common testbench use | Initialization, stimulus, file setup, reset sequence | Clock generation, monitors, repeated stimulus |
-| Synthesizable? | Usually not for ASIC RTL; limited synthesis support in FPGA flows | Synthesizable when written as proper RTL |
+| After the last statement | The process finishes | The process immediately starts again |
+| Main simulation use | One-time setup, reset stimulus, file setup, `$finish` | Repeated behavior, clocks, monitors, RTL logic |
+| Main RTL use | Generally avoided in ASIC RTL; FPGA tools may support some initial register/RAM values | Main procedural block for combinational and sequential RTL |
+| Timing control | Optional, but common in testbenches | Required in practice, otherwise zero-time loop can happen |
+| Event control use | Can wait for events, but still runs one sequence only | Commonly uses `@(posedge clk)` or `@(*)` to decide when to run |
+| Delay use | Common in testbench stimulus | Common for testbench clock generation; not normal synthesizable RTL |
+| Synthesizable? | Tool-dependent and limited; do not rely on it for portable ASIC RTL | Synthesizable when written as proper RTL |
 | Typical examples | `initial begin ... end` | `always @(posedge clk)`, `always @(*)`, `always #5 clk = ~clk` |
+
+**Important simulation point:** Multiple `initial` and `always` blocks in the same module are independent concurrent processes. They all start at simulation time 0, but statements inside one `begin...end` block execute sequentially.
 
 **Key idea:**
 
@@ -2560,9 +2726,11 @@ initial = run once
 always  = run forever
 ```
 
-Because `always` runs forever, it must include something that advances simulation time or waits for an event.
+Because `always` runs forever, it needs some statement that blocks the process and allows simulation time to advance or waits for an event.
 
-**`initial` example:**
+### 1. `initial` block
+
+An `initial` block is mainly used for one-time simulation behavior. It is very common in testbenches for initializing signals, applying a reset sequence, loading memory, opening files, and stopping the simulation.
 
 ```verilog
 initial begin
@@ -2573,7 +2741,7 @@ end
 
 This runs once in simulation.
 
-**`initial` in testbench:**
+**Testbench example:**
 
 ```verilog
 initial begin
@@ -2586,7 +2754,13 @@ end
 
 This is typical testbench code because it uses delays and `$finish`.
 
-**`always` example for sequential RTL:**
+**Synthesis note:** In ASIC-style RTL, do not depend on `initial` for real hardware reset behavior. Use a reset circuit. In FPGA flows, some tools can map declaration-time initial values into device initialization resources, but that is tool/device dependent. AMD Vivado, for example, documents support for initial register values in specific forms. [[S14]](#s14)
+
+### 2. `always` block
+
+An `always` block is used when behavior must repeat. In RTL, it is used mainly for sequential logic and combinational logic. In a testbench, it is also commonly used for clock generation and repeated monitoring.
+
+**Sequential RTL example:**
 
 ```verilog
 always @(posedge clk) begin
@@ -2597,9 +2771,9 @@ always @(posedge clk) begin
 end
 ```
 
-This runs on every positive clock edge.
+This waits for every positive clock edge. In synthesis, this normally infers a flip-flop or register. AMD Vivado describes sequential `always` blocks using a mandatory clock event, with optional asynchronous set/reset events. [[S14]](#s14)
 
-**`always` example for combinational RTL:**
+**Combinational RTL example:**
 
 ```verilog
 always @(*) begin
@@ -2607,11 +2781,21 @@ always @(*) begin
 end
 ```
 
-This runs whenever any right-hand-side signal changes.
+This runs when a signal used inside the combinational block changes. `always @(*)` is preferred over manually writing `always @(a or b or c)` because it helps avoid missed-signal sensitivity-list bugs. AMD notes that `@*` helps eliminate simulation mismatches caused by incorrect sensitivity lists. [[S14]](#s14)
+
+**SystemVerilog note:** In SystemVerilog, `always_comb`, `always_ff`, and `always_latch` make intent clearer:
+
+```verilog
+always_comb       // combinational logic
+always_ff @(posedge clk)  // flip-flop/register logic
+always_latch      // latch logic
+```
+
+Vivado lists these as always procedures and distinguishes their intended use. [[S14]](#s14)
 
 **Why an `always` block without delay/event control creates a zero-time infinite loop:**
 
-An `always` block without delay or event control can create an infinite zero-time loop in simulation:
+Bad code:
 
 ```verilog
 always begin
@@ -2623,16 +2807,16 @@ Reason:
 
 1. At simulation time 0, the `always` block starts.
 2. `clk = ~clk` executes immediately.
-3. There is no `#delay`, no `@(event)`, and no `wait`, so simulation time does not advance.
+3. There is no `#delay`, no `@(event)`, and no `wait`.
 4. The block reaches `end`.
-5. Because it is an `always` block, it immediately starts again.
-6. It toggles `clk` again at the same simulation time.
-7. This repeats forever at time 0, so the simulator hangs and time cannot move forward. [[S52]](#s52)
+5. Because it is an `always` block, it immediately restarts.
+6. The assignment runs again in the same simulation time slot.
+7. This repeats forever at time 0, so the simulator cannot move to time 1, time 5, or the next event. [[S5]](#s5) [[S52]](#s52)
 
 In short:
 
 ```text
-always repeats forever + no timing control = infinite loop at the same simulation time
+always repeats forever + no blocking timing/event control = infinite zero-time loop
 ```
 
 Correct testbench clock:
@@ -2641,12 +2825,12 @@ Correct testbench clock:
 always #5 clk = ~clk;
 ```
 
-Here, `#5` delays each execution by 5 time units. So simulation time advances:
+Here, `#5` blocks the process for 5 time units before each toggle. So simulation time advances:
 
 ```text
-time 0  -> clk toggles
-time 5  -> clk toggles
-time 10 -> clk toggles
+time 0  -> process starts, waits 5
+time 5  -> clk toggles, waits 5
+time 10 -> clk toggles, waits 5
 ...
 ```
 
@@ -2661,9 +2845,23 @@ end
 
 This is also common in testbenches.
 
-**RTL use of `always`:**
+### 3. Synthesis meaning
 
-1. **Sequential logic:**
+The same keyword can mean different things depending on the timing control:
+
+| Code pattern | Meaning in simulation | Usual synthesis meaning |
+|---|---|---|
+| `always @(posedge clk)` | Runs on a rising clock edge | Flip-flop/register |
+| `always @(posedge clk or negedge rst_n)` | Runs on clock edge or reset edge | Flip-flop with asynchronous reset |
+| `always @(*)` | Runs when used signals change | Combinational logic |
+| `always #5 clk = ~clk` | Periodic testbench clock | Not normal synthesizable RTL |
+| `initial begin ... end` | One-time simulation process | Usually testbench; limited FPGA initialization support |
+
+AMD's synthesis documentation makes an important distinction: event controls such as `@(posedge clk)` are used to describe hardware events, but delay controls like `#5` are not useful for synthesis and are ignored by synthesis while logic may still be created for the assignment. [[S14]](#s14)
+
+### 4. RTL examples
+
+**Sequential logic:**
 
 ```verilog
 always @(posedge clk) begin
@@ -2673,7 +2871,7 @@ end
 
 This waits for a clock edge. It infers a flip-flop.
 
-2. **Combinational logic:**
+**Combinational logic:**
 
 ```verilog
 always @(*) begin
@@ -2683,7 +2881,7 @@ end
 
 This waits for changes in the signals used in the block. It infers combinational logic if all outputs are assigned in all cases.
 
-3. **Testbench clock:**
+**Testbench clock:**
 
 ```verilog
 always #5 clk = ~clk;
@@ -2706,12 +2904,33 @@ end
 
 This can cause simulation mismatch. Use `always @(*)` for combinational Verilog.
 
-3. Using `initial` as if it creates hardware behavior in ASIC RTL.
-   In most RTL design, `initial` is for simulation/testbench, not normal synthesized hardware.
+3. Using `initial` as a replacement for reset in portable ASIC RTL.
+   A reset is real hardware behavior. An `initial` block is mainly a simulation construct, except for limited FPGA initialization cases.
+
+4. Putting testbench delays inside design RTL:
+
+```verilog
+always @(posedge clk) begin
+    #5 q <= d;  // do not write normal RTL like this
+end
+```
+
+Simulation may show a delayed assignment, but synthesis does not implement arbitrary `#5` time delay as hardware.
+
+5. Assigning the same register from multiple procedural blocks.
+   This can create multiple-driver ambiguity. For RTL, drive one register from one clocked block.
+
+### Best interview answer structure
+
+1. Start with execution count: `initial` once, `always` forever.
+2. Mention both start at time 0 in simulation.
+3. Explain that `always` needs a timing/event control to avoid zero-time looping.
+4. Say `always @(posedge clk)` is for sequential RTL and `always @(*)` is for combinational RTL.
+5. Say `initial` is mostly testbench, with limited FPGA initialization support.
 
 **Speak like this:**
 
-"The `initial` block starts at simulation time zero and runs only once, so I mainly use it in testbenches for initialization, reset stimulus, and `$finish`. The `always` block also starts at time zero, but it repeats forever. Because of that, it must have timing control like `@(posedge clk)`, `@(*)`, or `#5`. If I write `always begin clk = ~clk; end`, there is no delay or event wait, so the block toggles `clk`, reaches the end, immediately restarts, and keeps repeating at the same simulation time. Time never advances, so the simulator hangs in a zero-time infinite loop. For RTL, I use `always @(posedge clk)` for flip-flops and `always @(*)` for combinational logic. For a testbench clock, I use `always #5 clk = ~clk` or `forever #5 clk = ~clk` inside an `initial` block."
+"Both `initial` and `always` are procedural blocks and both are enabled at the start of simulation. The difference is that `initial` runs once and stops, while `always` repeats forever. So I use `initial` mainly in testbenches for one-time initialization, reset stimulus, file setup, and `$finish`. I use `always` when behavior must repeat. In RTL, `always @(posedge clk)` describes sequential logic like flip-flops, and `always @(*)` describes combinational logic. The important trap is that an `always` block must wait for time or an event. If I write `always begin clk = ~clk; end`, there is no delay or event control, so the block executes, reaches the end, immediately restarts, and keeps repeating at the same simulation time. That becomes an infinite zero-time loop. For a testbench clock I write `always #5 clk = ~clk`, but I do not use `#` delays in normal synthesizable RTL."
 
 [Back to index](./index.md)
 
@@ -2900,27 +3119,127 @@ None of these equals prefix `0`, `01`, or `011`. So the next state is `S0`.
 
 **Written answer:**
 
-**Definition to remember:** Every real gate has propagation delay, including XOR. But in normal RTL/digital design, XOR should not be used as a reliable delay element because gate delay is technology, voltage, temperature, synthesis, placement, and routing dependent. [[S4]](#s4)
+**Definition to remember:** An XOR gate has propagation delay like any real logic gate, so a signal passing through XOR is delayed by some amount. But an XOR gate is not a reliable delay element in normal RTL design because that delay is not a fixed design specification. It can change with synthesis optimization, technology library, placement, routing, load, process, voltage, and temperature. [[S4]](#s4) [[S54]](#s54) [[S55]](#s55)
 
 **Short answer:**
 
-Technically, an XOR gate has delay, so a signal passing through it is delayed. But practically, we should not design timing by intentionally using XOR as a delay element in normal RTL.
+The interview-safe answer is:
+
+```text
+Theoretically yes, practically no.
+```
+
+Yes, XOR has physical propagation delay. But no, I should not intentionally use a random XOR gate as a controlled delay element in synthesizable RTL. For real delay, use clocked registers, timing constraints, library delay cells, or vendor delay primitives.
+
+### Three different meanings of "delay"
+
+| Type of delay | Example | Meaning | Reliable for hardware? |
+|---|---|---|---|
+| Simulation delay | `#5 y = a;` | Delays behavior only in simulation | No for normal synthesis |
+| Gate propagation delay | Signal passes through XOR/LUT/cell | Physical delay of a real implemented gate | Exists, but not controlled enough |
+| Dedicated delay element | FPGA `IDELAYE3`/`ODELAYE3`, ASIC delay cell | Delay element intended for controlled delay | Yes, when used with tool/library rules |
+
+Delay in RTL simulation is not the same as a guaranteed physical delay in hardware. AMD synthesis documentation notes that delay controls like `#5` are not useful for synthesis. [[S14]](#s14)
 
 **Why it is not recommended:**
 
-1. **Synthesis may optimize it away:** If you write `A xor 0`, synthesis may replace it with just `A`.
-2. **Delay is not fixed:** Gate delay changes with process, voltage, temperature, load, and routing.
-3. **Poor portability:** The same RTL can have different delays on FPGA, ASIC, and different libraries.
-4. **Timing should be controlled properly:** Use clocked design, STA constraints, buffers/delay cells, or vendor primitives where delay is truly required.
-5. **XOR can glitch:** XOR output can glitch when inputs change at different times, so it is risky as a timing element.
+1. **Synthesis can optimize it away.**
+   If you write `A ^ 1'b0`, the Boolean function is just `A`, so synthesis can replace it with a wire. If you write `A ^ 1'b1`, the function is just `~A`, so synthesis can replace it with an inverter or absorb it into nearby logic. Synthesis tools perform constant folding and simple expression rewriting during optimization. [[S55]](#s55)
+
+2. **Even if it remains, the delay is not fixed.**
+   The delay depends on the selected cell or LUT, routing length, fanout, load capacitance, operating voltage, temperature, and manufacturing process. Timing analysis treats this as a path delay to be checked, not as a precise delay block chosen by the RTL writer. [[S4]](#s4)
+
+3. **FPGA implementation may change the physical path.**
+   The same XOR equation may map into a LUT, be merged with other logic, be moved during placement, or have different routing delay after place-and-route. So the final delay can change when constraints, device, tool version, or surrounding logic changes.
+
+4. **It is not portable.**
+   A delay created by one XOR in one FPGA family or ASIC standard-cell library will not match the delay in another technology.
+
+5. **XOR can create glitches.**
+   XOR output changes whenever exactly one input changes. If the two inputs arrive at slightly different times, the output can produce a short pulse/glitch. That is useful in some special edge-detection circuits, but risky if used as an uncontrolled timing element.
+
+6. **Static timing should control timing, not random gates.**
+   For synchronous digital design, timing should be controlled using clock period constraints, setup/hold analysis, registers, and proper clock-domain crossing methods.
+
+### What happens with common XOR delay ideas
+
+**Case 1: Trying to use XOR as a buffer**
+
+```verilog
+assign delayed_a = a ^ 1'b0;
+```
+
+This is logically equal to:
+
+```verilog
+assign delayed_a = a;
+```
+
+So synthesis may remove the XOR. It is not a safe delay.
+
+**Case 2: Trying to use XOR as an inverter delay**
+
+```verilog
+assign delayed_inv = a ^ 1'b1;
+```
+
+This is logically equal to:
+
+```verilog
+assign delayed_inv = ~a;
+```
+
+The tool may implement it as an inverter, merge it into a LUT, or absorb it into other logic.
+
+**Case 3: XORing a signal with a delayed version**
+
+```verilog
+assign pulse = a ^ a_delayed;
+```
+
+This can produce a pulse when `a` changes, because for a short time `a` and `a_delayed` differ. But the pulse width depends on the delay path, so it is not stable unless the delay path is intentionally designed and constrained.
 
 **Where XOR may appear in timing-related circuits:**
 
-XOR gates are sometimes used in phase detectors, edge detectors, parity circuits, or custom delay/measurement circuits. But that is different from relying on a random XOR gate as a stable delay in synthesizable RTL.
+XOR gates are used in phase detectors, edge detectors, parity generators/checkers, CRC logic, adders, and transition-detection circuits. In those cases, XOR is being used for its logic function, not as a guaranteed delay cell.
+
+### Correct ways to create delay
+
+1. **For clock-cycle delay, use registers:**
+
+```verilog
+always @(posedge clk) begin
+    d1 <= din;
+    d2 <= d1;
+end
+```
+
+This delays `din` by clock cycles, which is reliable in synchronous design.
+
+2. **For FPGA I/O timing delay, use vendor delay primitives.**
+   AMD devices provide dedicated delay resources such as `IDELAYE3` and `ODELAYE3`. AMD documents `IDELAYE3` as an input fixed or variable delay element, and in TIME mode it uses calibration and voltage/temperature compensation to maintain the requested delay. [[S54]](#s54)
+
+3. **For ASIC small physical delay, use standard-cell delay buffers or library delay cells.**
+   These should be placed, constrained, and verified with static timing analysis.
+
+4. **For clock phase delay, use clocking resources.**
+   Use PLL/MMCM phase shift or clock-management resources rather than random data-path gates. AMD notes that clocks should not be delayed using `IDELAYE3`; clock delay should use MMCM/PLL fine-phase shift where needed. [[S54]](#s54)
+
+5. **For simulation-only delay, use `#` delay in a testbench.**
+   This models time in simulation, but it is not normal synthesizable RTL. [[S14]](#s14)
+
+### Final interview position
+
+| Question | Best answer |
+|---|---|
+| Does XOR have delay? | Yes, every real gate has propagation delay. |
+| Can I rely on XOR as a delay element in RTL? | No, not for reliable/portable design. |
+| Why not? | Synthesis can optimize it, and physical delay varies with implementation and PVT. |
+| What should I use instead? | Registers for cycle delay, dedicated delay cells/primitives for physical delay, and STA constraints for timing closure. |
 
 **Speak like this:**
 
-"An XOR gate has propagation delay like any real gate, but I should not use it as a reliable delay element in normal RTL design. The delay can change with technology, voltage, temperature, load, routing, and synthesis optimization. If I write `A xor 0`, the tool may even optimize it into a wire. So for real delay requirements, I should use proper timing constraints, registers, buffers or dedicated delay cells, not a random XOR gate."
+"An XOR gate does have propagation delay, so in a physical circuit a signal through XOR will arrive later than the input. But I would not use XOR as a reliable delay element in normal RTL. If I write `A ^ 0`, synthesis can optimize it into just `A`; even if the XOR remains, its delay depends on cell mapping, routing, fanout, voltage, temperature, and process. XOR can also generate glitches if its inputs arrive at different times. So my answer is: theoretically yes, XOR has delay; practically, no, I should not rely on it for controlled delay. For cycle delay I use flip-flops, for FPGA I/O delay I use vendor primitives like IDELAY/ODELAY, and for ASIC I use library delay cells or buffers verified by static timing analysis."
 
 [Back to index](./index.md)
 
@@ -3138,6 +3457,1298 @@ If someone says "latch has no clock", the better answer is: a basic latch may ha
 
 [Back to index](./index.md)
 
+<a id="q57"></a>
+## 57. Where will we use flip-flops?
+
+**Written answer:**
+
+**Definition to remember:** A flip-flop is an edge-triggered one-bit storage element. It captures input at a clock edge and holds that stored value until the next active clock edge. Because it stores state, it is one of the basic building blocks of synchronous sequential circuits. [[S2]](#s2) [[S3]](#s3) [[S21]](#s21)
+
+Flip-flops are used wherever a digital system needs to remember a value at a well-defined clock edge. The important idea is that one flip-flop stores one bit, and many useful sequential blocks are built by connecting multiple flip-flops with combinational logic.
+
+**Standard definitions of common flip-flop uses:**
+
+| Use | Standard definition | How flip-flops are used |
+|---|---|---|
+| Register | A register is a group of flip-flops used to store a multi-bit binary value. An `n`-bit register uses `n` flip-flops. [[S21]](#s21) [[S66]](#s66) | Each flip-flop stores one bit of the word. Example: 8 flip-flops make an 8-bit register. |
+| Counter | A counter is a sequential circuit that advances through a defined sequence of states, usually to count clock pulses or events. [[S60]](#s60) [[S67]](#s67) | Flip-flops store the present count. Combinational logic computes the next count. |
+| Shift register | A shift register is a chain/group of flip-flops used to store data and shift it left or right by one position on clock pulses. [[S68]](#s68) | Each flip-flop passes its bit to the next flip-flop on the clock edge. |
+| FSM state register | An FSM is a sequential circuit with a finite number of states. The state register stores the present state of the FSM. [[S2]](#s2) [[S53]](#s53) | Flip-flops encode and store the current state; next-state logic decides the next state. |
+| Pipeline register | A pipeline register stores the output of one pipeline stage and presents it as input to the next stage in the next clock cycle. [[S69]](#s69) | Flip-flops separate long combinational paths into shorter stages, improving throughput. |
+| Synchronizer | A synchronizer is a register chain used when a signal crosses into another clock domain, giving metastability time to settle. [[S70]](#s70) | Usually two or more flip-flops are connected in series in the destination clock domain. |
+| Frequency divider | A frequency divider produces an output clock or pulse train with lower frequency than the input. [[S71]](#s71) | A toggle flip-flop divides by 2; cascaded flip-flops divide by 4, 8, 16, etc. |
+| Data/control storage | Control and status storage means storing one-bit or multi-bit control information such as valid, enable, done, ready, mode, and status flags. [[S21]](#s21) | Flip-flops hold control bits stable until the next update clock edge. |
+
+**Example view:**
+
+```text
+Register:
+8 flip-flops = 8-bit register
+
+Counter:
+count register stores current count
+next_count logic calculates count + 1
+
+Shift register:
+Q0 -> Q1 -> Q2 -> Q3 on each clock
+
+FSM:
+state register stores current_state
+combinational logic calculates next_state
+
+Pipeline:
+Stage 1 logic -> pipeline register -> Stage 2 logic
+
+Synchronizer:
+async_signal -> FF1 -> FF2 -> synchronized_signal
+
+Frequency divider:
+T flip-flop output toggles every input clock edge
+output frequency = input frequency / 2
+```
+
+**Why flip-flops are preferred in synchronous design:**
+
+1. They update only at clock edges.
+2. Timing analysis becomes more predictable.
+3. They avoid latch transparency problems.
+4. They match the standard RTL style used by FPGA and ASIC tools.
+
+**Speak like this:**
+
+"We use flip-flops wherever we need clocked storage. A flip-flop stores one bit at a clock edge, so a group of flip-flops forms registers. They are also used in counters, shift registers, FSM state registers, pipeline stages, synchronizers, and control/status bits. In synchronous design, flip-flops are preferred because all state updates happen at well-defined clock edges, which makes timing easier to analyze."
+
+[Back to index](./index.md)
+
+<a id="q58"></a>
+## 58. Where will we use latches in sequential circuits?
+
+**Written answer:**
+
+**Definition to remember:** A latch is a level-sensitive storage element. When its enable level is active, it is transparent and output can follow input; when enable is inactive, it holds the previous value. [[S3]](#s3)
+
+In normal synchronous RTL, flip-flops are preferred. Latches are used only when the design specifically needs level-sensitive storage or latch-based timing.
+
+**Where latches are used:**
+
+1. **Time borrowing in latch-based pipelines.**
+   A latch can remain transparent during part of the clock phase. If one stage is slightly late, it can borrow time from the next stage while the latch is still open. Intel timing documentation describes time borrowing as a latch timing effect. [[S16]](#s16) [[S56]](#s56)
+
+2. **High-performance custom ASIC design.**
+   Some custom datapaths use two-phase latch-based pipelines to improve timing flexibility.
+
+3. **Low-power clock-gating cells.**
+   Integrated clock-gating cells often contain a latch to hold the enable stable and avoid clock glitches.
+
+4. **Temporary level-sensitive storage.**
+   Latches can be used where a value must be held only while an enable is inactive.
+
+5. **Scan/test structures in ASIC flows.**
+   Some test or clock-domain transition structures may use latches, depending on methodology.
+
+**Why latches are used rarely in normal RTL:**
+
+1. They are transparent during the active level.
+2. Transparency can create race-through problems.
+3. Timing analysis is more complex than edge-triggered flip-flop timing.
+4. Accidental latch inference usually means incomplete combinational code.
+
+**Accidental latch example:**
+
+```verilog
+always @(*) begin
+    if (en)
+        y = d;
+    // no else assignment, so y must hold old value -> latch inferred
+end
+```
+
+**Intentional D latch:**
+
+```verilog
+always @(*) begin
+    if (en)
+        q = d;
+end
+```
+
+This intentionally says: when `en = 1`, pass `d`; otherwise hold old `q`.
+
+**Speak like this:**
+
+"Latches are used when level-sensitive storage is required. In normal synchronous RTL I avoid latches unless I intentionally need them. They are useful in latch-based pipelines because they allow time borrowing, and they may appear inside clock-gating cells or custom ASIC datapaths. But accidental latches are dangerous because they happen when combinational outputs are not assigned in all cases. So my default is flip-flops for regular synchronous design, and latches only when the timing methodology requires them."
+
+[Back to index](./index.md)
+
+<a id="q59"></a>
+## 59. Explain HDL.
+
+**Written answer:**
+
+**Definition to remember:** HDL stands for Hardware Description Language. It is a language used to describe the structure, behavior, and timing of digital hardware so that the design can be simulated, verified, and synthesized into real hardware such as FPGA logic or ASIC gates. [[S5]](#s5) [[S51]](#s51) [[S57]](#s57)
+
+HDL is not just a normal programming language. A normal programming language describes instructions executed by a processor. HDL describes hardware that exists in parallel.
+
+**What HDL is used for:**
+
+1. **Design entry:** describe the digital circuit.
+2. **Simulation:** check behavior before building hardware.
+3. **Synthesis:** convert RTL into gates, LUTs, flip-flops, and interconnect.
+4. **Verification:** test correctness using testbenches.
+5. **Documentation:** capture the architecture of the design clearly.
+
+**Common HDLs:**
+
+| HDL | Meaning |
+|---|---|
+| Verilog | Common HDL used for digital design and verification |
+| VHDL | VHSIC Hardware Description Language |
+| SystemVerilog | Extension of Verilog with stronger RTL and verification features |
+
+**HDL can describe hardware at different levels:**
+
+1. Behavioral level: what the circuit does.
+2. RTL level: registers and combinational logic between registers.
+3. Gate level: gates and netlists.
+4. Switch/transistor level: low-level primitives.
+
+**Small example:**
+
+```verilog
+module and_gate (
+    input  a,
+    input  b,
+    output y
+);
+assign y = a & b;
+endmodule
+```
+
+This does not mean "execute line by line like C." It describes hardware where `y` is continuously driven by `a & b`.
+
+**Speak like this:**
+
+"HDL means Hardware Description Language. It is used to describe digital hardware, not software instructions. With HDL I can describe structure, behavior, and timing of a circuit, simulate it, verify it with a testbench, and synthesize it into FPGA or ASIC hardware. Verilog and VHDL are common HDLs. The key difference from C is that HDL represents parallel hardware, so multiple blocks can operate at the same time."
+
+[Back to index](./index.md)
+
+<a id="q60"></a>
+## 60. Difference between HDL and C.
+
+**Written answer:**
+
+**Definition to remember:** HDL describes hardware. C describes software instructions executed by a processor. HDL code is synthesized into circuits; C code is compiled into machine instructions. [[S5]](#s5) [[S51]](#s51) [[S57]](#s57)
+
+| Point | HDL | C |
+|---|---|---|
+| Full idea | Hardware Description Language | General-purpose programming language |
+| Describes | Digital circuit structure/behavior | Algorithm executed by CPU |
+| Execution model | Naturally concurrent/parallel | Mostly sequential unless threads are used |
+| Output of tool | Gates, flip-flops, LUTs, netlist | Machine code/object code |
+| Timing | Clock, event, propagation, setup/hold timing matter | Instruction execution time matters |
+| Assignment meaning | Can describe wires, registers, hardware updates | Updates variables in software memory |
+| Target | FPGA/ASIC/digital circuit | Processor/microcontroller/computer |
+| Example use | Counter, FSM, UART, ALU | Sorting, file handling, control software |
+
+**Important example:**
+
+```verilog
+assign y = a & b;
+```
+
+In HDL, this means hardware exists continuously. Whenever `a` or `b` changes, `y` changes according to the AND gate.
+
+```c
+y = a & b;
+```
+
+In C, this is one instruction or statement executed when program control reaches that line.
+
+**Speak like this:**
+
+"The main difference is that HDL describes hardware, while C describes software. In HDL, statements represent gates, registers, wires, and parallel hardware behavior. In C, statements are executed sequentially by a processor. HDL synthesis produces a hardware netlist, while C compilation produces machine code. So even if Verilog syntax looks like C, the meaning is different."
+
+[Back to index](./index.md)
+
+<a id="q61"></a>
+## 61. Explain concurrency in Verilog.
+
+**Written answer:**
+
+**Definition to remember:** Concurrency in Verilog means that hardware blocks operate in parallel. Multiple `always` blocks, `initial` blocks, continuous assignments, and module instances are independent concurrent processes. Statements inside one procedural block execute sequentially, but separate blocks run concurrently in simulation and represent parallel hardware. [[S5]](#s5) [[S51]](#s51) [[S52]](#s52)
+
+**Simple idea:**
+
+```text
+Inside one always block       -> sequential order
+Between different always blocks -> concurrent behavior
+Continuous assign statements  -> always active
+Module instances              -> parallel hardware blocks
+```
+
+**Example:**
+
+```verilog
+always @(posedge clk)
+    q1 <= d1;
+
+always @(posedge clk)
+    q2 <= d2;
+
+assign y = q1 & q2;
+```
+
+At the same clock edge, both `q1` and `q2` are updated. The `assign` statement continuously drives `y`.
+
+**Why Verilog is concurrent:**
+
+Digital hardware is physically parallel. An adder, register, counter, and FSM in the same chip are not waiting for each other like normal C statements. They all exist at the same time. Verilog models that.
+
+**Important rule:**
+
+Do not drive the same `reg`/logic variable from multiple procedural blocks in normal RTL.
+
+Bad style:
+
+```verilog
+always @(posedge clk)
+    q <= a;
+
+always @(posedge clk)
+    q <= b;
+```
+
+This creates multiple procedural drivers for `q` and is not a clean RTL style. One register should normally be assigned in one clocked block.
+
+**Speak like this:**
+
+"Concurrency in Verilog means different hardware blocks operate at the same time. Multiple `always` blocks, module instances, and continuous assignments are concurrent. But inside a single `begin-end` procedural block, statements execute in order. This matches real hardware because all gates and registers exist simultaneously. That is why Verilog is different from C."
+
+[Back to index](./index.md)
+
+<a id="q62"></a>
+## 62. Verilog vs C.
+
+**Written answer:**
+
+**Definition to remember:** Verilog is an HDL used to model and synthesize digital hardware. C is a software programming language used to write programs that run on a processor. [[S5]](#s5) [[S51]](#s51)
+
+| Feature | Verilog | C |
+|---|---|---|
+| Nature | Hardware description language | Software programming language |
+| Describes | Circuits | Instructions |
+| Runs on | Simulator or synthesized hardware | CPU/compiler/runtime |
+| Parallelism | Natural; many blocks active together | Sequential by default |
+| Main object | Modules, wires, regs/logic, always blocks | Functions, variables, pointers, loops |
+| Timing | Explicit clock/event behavior | Program order and CPU timing |
+| Assignment | Can infer combinational logic or registers | Updates a variable |
+| Testing | Testbench simulation | Unit tests/debugger/program output |
+
+**Example difference:**
+
+Verilog:
+
+```verilog
+always @(posedge clk)
+    q <= d;
+```
+
+This describes a D flip-flop.
+
+C:
+
+```c
+q = d;
+```
+
+This copies a value when that line executes.
+
+**Common mistake:**
+
+Do not read Verilog like C line-by-line. In Verilog, separate blocks can run in parallel and `<=` nonblocking assignment updates registers in a clocked hardware style.
+
+**Speak like this:**
+
+"Verilog may look like C syntactically, but the meaning is different. C tells a processor what instructions to execute. Verilog describes hardware that exists physically. In C, statements usually run one after another. In Verilog, different modules, `always` blocks, and continuous assignments run concurrently. A Verilog clocked block can infer a flip-flop, while a C assignment just updates a software variable."
+
+[Back to index](./index.md)
+
+<a id="q63"></a>
+## 63. Draw state diagram for 1010 non-overlapping sequence.
+
+**Written answer:**
+
+**Definition to remember:** A sequence detector FSM uses states to remember how much of the target sequence has been matched. In a Mealy FSM, the output is written on transitions because output depends on present state and current input. [[S23]](#s23) [[S53]](#s53)
+
+Target sequence:
+
+```text
+1010
+```
+
+For a non-overlapping detector, after detecting one full `1010`, we do not reuse any bits from that detected sequence. So after detection, the FSM returns to `S0`.
+
+**State meaning:**
+
+| State | Meaning |
+|---|---|
+| S0 | No useful match |
+| S1 | Matched `1` |
+| S2 | Matched `10` |
+| S3 | Matched `101` |
+
+**Transition table:**
+
+Transition format:
+
+```text
+next_state / output
+```
+
+| Present state | Input 0 | Input 1 |
+|---|---|---|
+| S0 | S0 / 0 | S1 / 0 |
+| S1 | S2 / 0 | S1 / 0 |
+| S2 | S0 / 0 | S3 / 0 |
+| S3 | S0 / 1 | S1 / 0 |
+
+**ASCII state diagram:**
+
+```text
+S0 --1/0--> S1 --0/0--> S2 --1/0--> S3 --0/1--> S0
+^           |           |                         |
+|           |1/0        |0/0                      |1/0
++----0/0---+           +-----------0/0-----------+--> S1
+```
+
+**Important transition:**
+
+```text
+S3 --0/1--> S0
+```
+
+This means input `0` completes `1010`, output becomes `1`, and because this is non-overlapping, the detector goes back to the initial state.
+
+**Speak like this:**
+
+"For non-overlapping sequence `1010`, I make states for partial matches: `S0` no match, `S1` matched `1`, `S2` matched `10`, and `S3` matched `101`. Since it is a Mealy detector, output is on the transition. From `S3`, if input is `0`, the full sequence `1010` is detected, so output is `1`, and because it is non-overlapping, the next state is `S0`."
+
+[Back to index](./index.md)
+
+<a id="q64"></a>
+## 64. XOR as inverter and buffer.
+
+**Written answer:**
+
+**Definition to remember:** XOR can be used as a controlled inverter. If one XOR input is tied to `0`, the other input passes unchanged. If one XOR input is tied to `1`, the other input is inverted. [[S40]](#s40)
+
+**XOR truth table:**
+
+| A | B | Y = A xor B |
+|---:|---:|---:|
+| 0 | 0 | 0 |
+| 0 | 1 | 1 |
+| 1 | 0 | 1 |
+| 1 | 1 | 0 |
+
+### Buffer using XOR
+
+Tie one input to `0`:
+
+```text
+Y = A xor 0 = A
+```
+
+```text
+A ----\
+      XOR ---- Y = A
+0 ----/
+```
+
+### Inverter using XOR
+
+Tie one input to `1`:
+
+```text
+Y = A xor 1 = A'
+```
+
+```text
+A ----\
+      XOR ---- Y = A'
+1 ----/
+```
+
+**Verilog:**
+
+```verilog
+assign buffer_out = a ^ 1'b0;
+assign invert_out = a ^ 1'b1;
+```
+
+**Speak like this:**
+
+"XOR gives `1` when its inputs are different. So if I tie one input to `0`, the output is the same as the other input, which is a buffer. If I tie one input to `1`, the output becomes the complement, so it works as an inverter."
+
+[Back to index](./index.md)
+
+<a id="q65"></a>
+## 65. Write Verilog code for D flip-flop.
+
+**Written answer:**
+
+**Definition to remember:** A D flip-flop stores the value of input `D` on the active clock edge and presents it at output `Q`. In Verilog, a positive-edge D flip-flop is inferred using `always @(posedge clk)`. [[S3]](#s3) [[S21]](#s21)
+
+### D flip-flop without reset
+
+```verilog
+module dff (
+    input  wire clk,
+    input  wire d,
+    output reg  q
+);
+always @(posedge clk) begin
+    q <= d;
+end
+endmodule
+```
+
+### D flip-flop with synchronous active-high reset
+
+```verilog
+module dff_sync_reset (
+    input  wire clk,
+    input  wire rst,
+    input  wire d,
+    output reg  q
+);
+always @(posedge clk) begin
+    if (rst)
+        q <= 1'b0;
+    else
+        q <= d;
+end
+endmodule
+```
+
+Here reset is checked only at the clock edge, so it is synchronous reset.
+
+### D flip-flop with asynchronous active-low reset
+
+```verilog
+module dff_async_reset (
+    input  wire clk,
+    input  wire rst_n,
+    input  wire d,
+    output reg  q
+);
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n)
+        q <= 1'b0;
+    else
+        q <= d;
+end
+endmodule
+```
+
+Here reset is in the sensitivity list, so it can reset the flip-flop without waiting for the clock.
+
+**Important coding points:**
+
+1. Use nonblocking assignment `<=` in clocked sequential logic.
+2. Use `posedge clk` or `negedge clk` depending on the required edge.
+3. Put asynchronous reset in the sensitivity list.
+4. For synchronous reset, keep only clock in the sensitivity list.
+
+**Speak like this:**
+
+"For a D flip-flop in Verilog, I use an edge-sensitive `always` block. The simplest form is `always @(posedge clk) q <= d;`, which means on every rising edge, `q` captures `d`. If reset is synchronous, I check reset inside the clocked block. If reset is asynchronous, I include reset in the sensitivity list along with the clock."
+
+[Back to index](./index.md)
+
+<a id="q66"></a>
+## 66. How should I explain my project in an interview with component details?
+
+**Written answer:**
+
+**Definition to remember:** In a project explanation, do not only say what the project does. Explain the problem, block diagram, signal flow, key components, IC part numbers, why those parts were selected, interfaces, limitations, and testing. If an ADC is used, mention the ADC type, resolution, sampling rate, input range, reference voltage, interface, and IC name. [[S32]](#s32) [[S33]](#s33) [[S58]](#s58)
+
+Use this structure:
+
+### 1. One-line project summary
+
+```text
+My project is a <system name> that takes <input>, processes it using <main controller/logic>, and gives <output>.
+```
+
+Example:
+
+```text
+My project is a sensor data acquisition system that reads an analog sensor, converts it using an ADC, processes it in a microcontroller/FPGA, and displays or transmits the digital result.
+```
+
+### 2. Block diagram explanation
+
+Speak in signal-flow order:
+
+```text
+Sensor/input -> signal conditioning -> ADC -> controller/FPGA -> processing -> communication/display/output
+```
+
+For an audio/communication project:
+
+```text
+Microphone -> preamplifier/filter -> ADC -> digital processing -> channel/interface -> DAC/PWM/audio output
+```
+
+### 3. Component details to mention
+
+| Component | What to say |
+|---|---|
+| Sensor/input | Type, range, output voltage/current, why selected |
+| ADC | ADC type, IC name, resolution, sample rate, input range, reference, interface |
+| Controller/FPGA | Part number, clock, memory/resources, why selected |
+| Power supply | Voltage rails, regulators, current requirement |
+| Communication | UART/SPI/I2C/CAN/USB/Wi-Fi, data rate |
+| Output | Display, actuator, DAC, PWM, relay, LED, speaker |
+| Protection/filtering | RC filter, op-amp, level shifting, ESD, isolation |
+
+### 4. If ADC is used, explain it like this
+
+ADC means analog-to-digital converter. It converts a continuous analog voltage into a digital number. Important ADC architectures include SAR, sigma-delta, pipeline, flash, and integrating/dual-slope ADCs. Analog Devices lists these common ADC architecture choices and tradeoffs. [[S58]](#s58)
+
+Interview details:
+
+```text
+ADC IC used: <part number>
+ADC type: SAR / sigma-delta / pipeline / flash / internal MCU ADC
+Resolution: <n bits>
+Sampling rate: <samples per second>
+Input range: <0 to Vref, differential, bipolar, etc.>
+Reference voltage: <Vref value>
+Interface: SPI / parallel / I2C / internal bus
+Reason selected: accuracy / speed / low power / available on board / cost
+```
+
+**ADC type selection examples:**
+
+| ADC type | Good for |
+|---|---|
+| SAR ADC | General data acquisition, medium/high speed, low power |
+| Sigma-delta ADC | High-resolution, low-bandwidth sensors/audio/instrumentation |
+| Pipeline ADC | High-speed data acquisition |
+| Flash ADC | Very high speed, lower resolution, more power/area |
+| Dual-slope/integrating ADC | Slow but accurate measurement, DMM-style applications |
+
+### 5. Explain your contribution
+
+Say exactly what you did:
+
+1. Designed the Verilog/RTL/module.
+2. Wrote testbench and verified outputs.
+3. Interfaced ADC/sensor/display.
+4. Selected component values.
+5. Debugged timing/noise/interface issues.
+6. Measured results and compared with expected output.
+
+### 6. Discuss problems and fixes
+
+Good interviewers like this part.
+
+Examples:
+
+| Problem | Good answer style |
+|---|---|
+| ADC readings noisy | Added averaging/filtering, checked reference stability, improved grounding |
+| SPI not working | Checked CPOL/CPHA, clock rate, chip select timing |
+| Timing issue | Added pipeline/registers and checked setup/hold |
+| Wrong output | Built testbench, checked waveform, corrected state transition |
+
+**Speak like this:**
+
+"For project explanation, I would start with the problem and one-line goal, then explain the block diagram in signal-flow order. After that I would mention the key components and why I used them. If an ADC is involved, I should not just say ADC; I should say the ADC IC part number, architecture like SAR or sigma-delta, resolution, sampling rate, reference voltage, input range, and interface like SPI or I2C. Then I explain my exact contribution, testing method, issues faced, and how I fixed them."
+
+[Back to index](./index.md)
+
+<a id="q67"></a>
+## 67. Design D latch using 2:1 MUX.
+
+**Written answer:**
+
+**Definition to remember:** A D latch can be implemented using a 2:1 MUX by feeding back the output `Q` to one MUX input and connecting `D` to the other MUX input. The enable signal selects whether the latch holds its old value or loads the new value. [[S3]](#s3) [[S19]](#s19) [[S59]](#s59)
+
+For an active-high D latch:
+
+```text
+EN = 0 -> Q_next = Q      hold
+EN = 1 -> Q_next = D      transparent/load
+```
+
+So the MUX equation is:
+
+```text
+Q_next = EN ? D : Q
+```
+
+### Circuit using 2:1 MUX
+
+```text
+              +---------+
+Q feedback -->| I0      |
+              |     MUX |----> Q
+D ----------->| I1      |
+              |         |
+EN ---------->| Sel     |
+              +---------+
+```
+
+**Truth table:**
+
+| EN | D | Q_next | Meaning |
+|---:|---:|---:|---|
+| 0 | X | Q | Hold previous value |
+| 1 | 0 | 0 | Load 0 |
+| 1 | 1 | 1 | Load 1 |
+
+**Verilog:**
+
+```verilog
+module d_latch_mux (
+    input  wire d,
+    input  wire en,
+    output reg  q
+);
+always @(*) begin
+    if (en)
+        q = d;
+end
+endmodule
+```
+
+This intentionally infers storage because when `en = 0`, `q` is not assigned and therefore holds its previous value.
+
+Conceptual MUX equation:
+
+```verilog
+assign q_next = en ? d : q;
+```
+
+In real RTL, be careful: writing a latch intentionally is allowed, but accidental latches from incomplete combinational assignments are usually a bug. In SystemVerilog, `always_latch` is clearer when a latch is intended.
+
+**Step-by-step explanation:**
+
+1. A 2:1 MUX selects one of two inputs.
+2. Connect `D` to input `I1`.
+3. Connect present output `Q` back to input `I0`.
+4. Use enable `EN` as the select line.
+5. When `EN = 1`, MUX selects `D`, so `Q` follows `D`.
+6. When `EN = 0`, MUX selects feedback `Q`, so the latch holds its previous value.
+
+**Speak like this:**
+
+"A D latch can be made using a 2:1 MUX by using feedback. I connect the current output `Q` back to input `I0`, connect `D` to input `I1`, and use enable as the select line. When enable is `1`, the MUX selects `D`, so the latch is transparent and `Q` follows `D`. When enable is `0`, the MUX selects the feedback path, so `Q` keeps its old value. Therefore the equation is `Q_next = EN ? D : Q`."
+
+[Back to index](./index.md)
+
+<a id="q68"></a>
+## 68. Design a mod-4 up counter, draw truth table, and verify.
+
+**Written answer:**
+
+**Definition to remember:** A mod-4 up counter is a 2-bit sequential circuit that counts four states in upward binary order: `00 -> 01 -> 10 -> 11 -> 00`. A 2-bit counter needs two flip-flops because two flip-flops can store four states. [[S2]](#s2) [[S21]](#s21) [[S60]](#s60)
+
+### State sequence
+
+```text
+00 -> 01 -> 10 -> 11 -> 00 -> repeat
+```
+
+Let:
+
+```text
+Q1 = MSB
+Q0 = LSB
+```
+
+### State transition table
+
+| Present state Q1 Q0 | Decimal count | Next state Q1+ Q0+ |
+|---|---:|---|
+| 00 | 0 | 01 |
+| 01 | 1 | 10 |
+| 10 | 2 | 11 |
+| 11 | 3 | 00 |
+
+For D flip-flops:
+
+```text
+D1 = Q1+
+D0 = Q0+
+```
+
+So the excitation table is:
+
+| Q1 | Q0 | D1 | D0 |
+|---:|---:|---:|---:|
+| 0 | 0 | 0 | 1 |
+| 0 | 1 | 1 | 0 |
+| 1 | 0 | 1 | 1 |
+| 1 | 1 | 0 | 0 |
+
+From the table:
+
+```text
+D0 = Q0'
+D1 = Q1 xor Q0
+```
+
+### Circuit to draw
+
+```text
+                 +---------+
+Q0 --------------| NOT     |---- D0
+                 +---------+
+
+Q1 ----\
+        XOR -------------------- D1
+Q0 ----/
+
+              +--------+          +--------+
+D1 ---------->| DFF Q1 |---- Q1   |        |
+CLK --------->| CLK    |          | output |
+RST --------->| RST    |          +--------+
+              +--------+
+
+              +--------+
+D0 ---------->| DFF Q0 |---- Q0
+CLK --------->| CLK    |
+RST --------->| RST    |
+              +--------+
+```
+
+Both flip-flops use the same clock, so this is a synchronous counter.
+
+### Verification table
+
+| Clock edge | Q1 Q0 before edge | D1 D0 | Q1 Q0 after edge |
+|---:|---|---|---|
+| Reset | X | X | 00 |
+| 1 | 00 | 01 | 01 |
+| 2 | 01 | 10 | 10 |
+| 3 | 10 | 11 | 11 |
+| 4 | 11 | 00 | 00 |
+
+This verifies mod-4 behavior because after four clock edges it returns to `00`.
+
+### Verilog, simple RTL
+
+```verilog
+module mod4_up_counter (
+    input  wire       clk,
+    input  wire       rst,
+    output reg  [1:0] q
+);
+always @(posedge clk or posedge rst) begin
+    if (rst)
+        q <= 2'b00;
+    else
+        q <= q + 2'b01;
+end
+endmodule
+```
+
+Because `q` is 2 bits wide, after `11 + 1`, it wraps to `00`.
+
+### Verilog using D-input equations
+
+```verilog
+module mod4_up_counter_dlogic (
+    input  wire clk,
+    input  wire rst,
+    output reg  q1,
+    output reg  q0
+);
+wire d1 = q1 ^ q0;
+wire d0 = ~q0;
+
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
+        q1 <= 1'b0;
+        q0 <= 1'b0;
+    end else begin
+        q1 <= d1;
+        q0 <= d0;
+    end
+end
+endmodule
+```
+
+**Speak like this:**
+
+"A mod-4 up counter needs two flip-flops because two bits give four states. The count sequence is `00, 01, 10, 11`, then it returns to `00`. For D flip-flop design, I make the next-state table and set `D1 = Q1+` and `D0 = Q0+`. From the table, `D0` toggles every clock, so `D0 = Q0'`, and `D1` toggles when `Q0` is 1, so `D1 = Q1 xor Q0`. Then I connect these D inputs to two D flip-flops with the same clock."
+
+[Back to index](./index.md)
+
+<a id="q69"></a>
+## 69. Level triggered and edge triggered.
+
+**Written answer:**
+
+**Definition to remember:** Level triggering means a circuit responds while the control signal is at an active level, such as high or low. Edge triggering means a circuit responds only at the transition edge of a signal, such as rising edge or falling edge. Latches are level-sensitive; flip-flops are edge-sensitive. [[S3]](#s3) [[S61]](#s61)
+
+### Level triggered
+
+In level triggering, the circuit is active for the entire time the enable or clock is at the active level.
+
+Example for active-high D latch:
+
+```text
+EN = 1 -> Q follows D
+EN = 0 -> Q holds old value
+```
+
+So if `D` changes multiple times while `EN = 1`, `Q` can also change multiple times.
+
+### Edge triggered
+
+In edge triggering, the circuit samples input only at a transition.
+
+Examples:
+
+```text
+posedge clk: low-to-high transition
+negedge clk: high-to-low transition
+```
+
+For a positive-edge D flip-flop:
+
+```text
+At posedge clk -> Q captures D
+Between edges  -> Q holds old value
+```
+
+### Comparison
+
+| Point | Level triggered | Edge triggered |
+|---|---|---|
+| Sensitive to | Signal level | Signal transition |
+| Active duration | Entire active level | Very small instant around edge |
+| Typical element | Latch | Flip-flop |
+| Output can change | While enable is active | Only after active edge |
+| Timing risk | Transparency/race-through | Setup/hold violation, metastability |
+| Use | Latches, enables, some control circuits | Synchronous registers, counters, FSMs |
+
+### Waveform idea
+
+```text
+CLK/EN:  ___-------___-------
+D:       __--__----____--___
+Latch Q: ___--__----____--__   changes while level is active
+FF Q:    ______----_________   changes only at active edge
+```
+
+**Speak like this:**
+
+"Level triggered means the circuit responds as long as the control signal is at the active level. A latch is the common example: when enable is active, output can follow input. Edge triggered means the circuit responds only at the transition, like rising edge or falling edge. A flip-flop is edge triggered, so it samples the input only at the clock edge and holds the value between edges."
+
+[Back to index](./index.md)
+
+<a id="q70"></a>
+## 70. Functions of flip-flop.
+
+**Written answer:**
+
+**Definition to remember:** The main function of a flip-flop is to store one bit of information at a clock edge. From that one-bit storage function, larger sequential systems such as registers, counters, shift registers, FSMs, synchronizers, and pipelines are built. [[S2]](#s2) [[S3]](#s3) [[S21]](#s21)
+
+**Main functions:**
+
+| Function | Explanation |
+|---|---|
+| Memory element | Stores one binary bit, `0` or `1` |
+| State storage | Stores current state in FSMs and sequential circuits |
+| Register building block | Multiple flip-flops together store multi-bit data |
+| Counter building block | Flip-flops store the count value |
+| Shift register | Data shifts from one flip-flop to the next every clock |
+| Pipeline register | Stores intermediate data between combinational stages |
+| Synchronizer | Helps transfer asynchronous signals into a clock domain |
+| Frequency divider | Toggle flip-flops can divide clock frequency |
+| Control flag storage | Stores valid bits, done bits, enable bits, status flags |
+
+### Why flip-flops are important
+
+Combinational circuits cannot remember previous values. Flip-flops add memory to a digital system. Once memory is available, the circuit can perform multi-step behavior over time.
+
+Examples:
+
+```text
+Counter:
+current_count stored in flip-flops
+next_count = current_count + 1
+
+FSM:
+current_state stored in flip-flops
+next_state decided by combinational logic
+
+Pipeline:
+stage_result stored in flip-flops
+next stage uses stored result in next cycle
+```
+
+**Speak like this:**
+
+"The basic function of a flip-flop is to store one bit at a clock edge. But practically, flip-flops are used to build registers, counters, shift registers, FSM state registers, synchronizers, pipelines, and control flags. They are important because they give memory to digital circuits. Without flip-flops, a circuit would only be combinational and could not remember previous states."
+
+[Back to index](./index.md)
+
+<a id="q71"></a>
+## 71. XNOR using MUX. Is MUX universal?
+
+**Written answer:**
+
+**Definition to remember:** A 2:1 MUX output is `Y = S' I0 + S I1`. To implement any function using a MUX, choose one variable as the select line and connect the data inputs according to the function value when that select variable is `0` or `1`. This idea is based on Shannon expansion. [[S7]](#s7) [[S64]](#s64) [[S65]](#s65)
+
+### XNOR truth table
+
+| A | B | XNOR Y |
+|---:|---:|---:|
+| 0 | 0 | 1 |
+| 0 | 1 | 0 |
+| 1 | 0 | 0 |
+| 1 | 1 | 1 |
+
+XNOR is `1` when both inputs are equal:
+
+```text
+Y = A xnor B = A'B' + AB
+```
+
+### Implement XNOR using one 2:1 MUX plus B'
+
+Use:
+
+```text
+Select S = A
+I0 = B'
+I1 = B
+```
+
+Check:
+
+```text
+If A = 0, Y = I0 = B'
+If A = 1, Y = I1 = B
+```
+
+That matches XNOR:
+
+```text
+A=0 -> output should be B'
+A=1 -> output should be B
+```
+
+**Circuit:**
+
+```text
+          +---------+
+B' ------>| I0      |
+B  ------>| I1  MUX |---- Y = A xnor B
+A  ------>| S       |
+          +---------+
+```
+
+### If only 2:1 MUXes are allowed
+
+Use one MUX to generate `B'`, then another MUX to generate XNOR.
+
+**MUX 1 as inverter:**
+
+```text
+Select = B
+I0 = 1
+I1 = 0
+Output = B'
+```
+
+**MUX 2 as XNOR:**
+
+```text
+Select = A
+I0 = B'
+I1 = B
+Output = A xnor B
+```
+
+### Is MUX universal?
+
+The careful answer is:
+
+```text
+A MUX network can be universal, but a bare MUX is not usually called a universal gate like NAND or NOR.
+```
+
+Why:
+
+1. NAND and NOR are universal gates because only NAND gates or only NOR gates can implement NOT, AND, OR, and therefore any Boolean function.
+2. A MUX can implement logic functions if constants `0`, `1`, inputs, and sometimes complemented inputs are available.
+3. Using Shannon expansion, any Boolean function can be recursively implemented using multiplexers.
+4. So a MUX is often called a universal combinational building block, but in strict interview language NAND and NOR are the standard universal gates.
+
+**Speak like this:**
+
+"For XNOR using a 2:1 MUX, I choose `A` as the select line. When `A` is `0`, XNOR output should be `B'`; when `A` is `1`, output should be `B`. So I connect `I0 = B'`, `I1 = B`, and select `A`. If I only have MUXes, I can create `B'` using another 2:1 MUX with inputs `1` and `0`. About universality, a MUX network can implement any Boolean function using Shannon expansion if constants and needed complements are available, but NAND and NOR are the standard universal gates in the strict sense."
+
+[Back to index](./index.md)
+
+<a id="q72"></a>
+## 72. How to calculate FIFO depth.
+
+**Written answer:**
+
+**Definition to remember:** FIFO depth is the number of words the FIFO must store without overflow. The correct depth depends on the maximum difference between cumulative writes and cumulative reads over the worst-case traffic pattern. [[S38]](#s38) [[S39]](#s39) [[S62]](#s62)
+
+The most general rule is:
+
+```text
+Required FIFO depth >= maximum value of (total writes - total reads)
+```
+
+computed over the worst-case time window.
+
+### Step-by-step method
+
+1. Find write clock frequency `Fw`.
+2. Find read clock frequency `Fr`.
+3. Find burst size `B`.
+4. Include write enable/read enable duty cycles or idle cycles.
+5. Calculate how many words are written in the burst.
+6. Calculate how many words can be read during the same time.
+7. FIFO depth is the maximum accumulated leftover words.
+8. Add margin for pointer synchronization, read latency, almost-full threshold, and implementation details.
+
+### Simple burst formula
+
+If the writer writes `B` words continuously at frequency `Fw`, and the reader reads continuously at frequency `Fr`:
+
+```text
+Write time = B / Fw
+Words read during write time = floor(Write time * Fr)
+Minimum depth = B - Words read during write time
+```
+
+If the result is less than or equal to zero, a very small FIFO may be enough for that simple case, but practical designs still need margin.
+
+### Example
+
+Given:
+
+```text
+Write clock Fw = 80 MHz
+Read clock Fr  = 50 MHz
+Burst size B   = 120 words
+One write/read per active clock
+```
+
+Write time:
+
+```text
+Twrite = 120 / 80 MHz = 1.5 us = 1500 ns
+```
+
+Read period:
+
+```text
+Tread = 1 / 50 MHz = 20 ns
+```
+
+Words read during 1500 ns:
+
+```text
+1500 ns / 20 ns = 75 words
+```
+
+Words left in FIFO:
+
+```text
+120 - 75 = 45 words
+```
+
+So:
+
+```text
+Minimum FIFO depth = 45 words
+```
+
+This style of calculation matches common FIFO depth interview problems. [[S62]](#s62)
+
+### With idle cycles or duty cycle
+
+If there are idle cycles:
+
+```text
+Effective write period = (write_idle_cycles + 1) / Fw
+Effective read period  = (read_idle_cycles + 1) / Fr
+```
+
+Then:
+
+```text
+Write time for burst = B * effective_write_period
+Reads during burst   = floor(write_time / effective_read_period)
+Depth                = B - reads_during_burst
+```
+
+If duty cycle is given:
+
+```text
+Effective write rate = Fw * write_enable_duty
+Effective read rate  = Fr * read_enable_duty
+```
+
+### Important cases
+
+| Case | Meaning |
+|---|---|
+| Average write rate > average read rate forever | No finite FIFO is enough; it will eventually overflow |
+| Write faster only during burst | FIFO stores the temporary backlog |
+| Read faster than write | FIFO may need only small depth, but underflow must be handled |
+| Async FIFO | Add margin for pointer synchronization and full/empty latency |
+| Vendor FIFO IP | Actual usable depth may differ from selected depth depending on implementation/mode |
+
+AMD notes that actual FIFO depth can depend on whether the FIFO uses common or independent clocks and whether it uses standard or FWFT mode. [[S63]](#s63)
+
+**Speak like this:**
+
+"FIFO depth is calculated from the worst-case backlog. I count how many words can be written before the reader removes them. The formula I keep in mind is maximum cumulative writes minus cumulative reads. For example, if 120 words are written at 80 MHz, the write burst takes 1500 ns. If the reader reads at 50 MHz, it reads one word every 20 ns, so it can read 75 words during that time. The remaining 45 words must be stored, so the minimum depth is 45. In real designs I add margin for synchronizer latency, read latency, almost-full threshold, and FIFO implementation details."
+
+[Back to index](./index.md)
+
+<a id="q73"></a>
+## 73. Swap two variables using nonblocking assignment and blocking assignment.
+
+**Written answer:**
+
+**Definition to remember:** Blocking assignment `=` updates immediately and executes in order inside a procedural block. Nonblocking assignment `<=` evaluates the right-hand side immediately but schedules the left-hand side update for later in the simulation time step. That is why nonblocking assignments can swap two registers in one clocked block without a temporary variable. [[S5]](#s5) [[S12]](#s12)
+
+Assume:
+
+```text
+a = 10
+b = 15
+```
+
+### Wrong blocking swap without temp
+
+```verilog
+initial begin
+    a = 10;
+    b = 15;
+
+    a = b;
+    b = a;
+end
+```
+
+Execution:
+
+```text
+a = b;  -> a becomes 15
+b = a;  -> b becomes 15 because a is already updated
+```
+
+Final:
+
+```text
+a = 15, b = 15   // wrong
+```
+
+### Correct blocking swap using temp
+
+```verilog
+integer temp;
+
+initial begin
+    a = 10;
+    b = 15;
+
+    temp = a;
+    a    = b;
+    b    = temp;
+end
+```
+
+Execution:
+
+```text
+temp = 10
+a = 15
+b = 10
+```
+
+Final:
+
+```text
+a = 15, b = 10
+```
+
+### Correct nonblocking swap
+
+```verilog
+always @(posedge clk) begin
+    a <= b;
+    b <= a;
+end
+```
+
+At the clock edge:
+
+```text
+RHS of a <= b reads old b = 15
+RHS of b <= a reads old a = 10
+Both LHS updates happen later together
+```
+
+Final after the clock edge:
+
+```text
+a = 15, b = 10
+```
+
+This works because nonblocking assignments sample old values and update together.
+
+### Arithmetic swap using blocking assignments
+
+```verilog
+initial begin
+    a = 10;
+    b = 15;
+
+    a = a + b;  // a = 25
+    b = a - b;  // b = 10
+    a = a - b;  // a = 15
+end
+```
+
+This swaps values, but it is not the best hardware/interview style because:
+
+1. It can overflow for fixed-width signals.
+2. It can behave badly with signed arithmetic if width/sign is not handled carefully.
+3. It uses adders/subtractors instead of a simple temp register or nonblocking swap.
+
+### Best practice
+
+| Situation | Preferred style |
+|---|---|
+| Clocked sequential RTL | Use nonblocking `<=` |
+| Combinational/procedural calculation | Use blocking `=` |
+| Blocking swap | Use temporary variable |
+| Register swap at clock edge | Use nonblocking assignments |
+
+**Speak like this:**
+
+"With blocking assignments, statements execute immediately in order. So if I write `a = b; b = a;`, both become the old value of `b`, which is wrong. For blocking assignment, I should use a temporary variable: `temp = a; a = b; b = temp;`. With nonblocking assignment in a clocked block, `a <= b; b <= a;` works because both right-hand sides are evaluated using old values and both left-hand sides update together at the end of the time step. Arithmetic swap using addition and subtraction can work, but I avoid it in RTL because of overflow and signed-width issues."
+
+[Back to index](./index.md)
+
 <a id="sources"></a>
 ## Source References
 
@@ -3299,3 +4910,57 @@ If someone says "latch has no clock", the better answer is: a basic latch may ha
 
 <a id="s53"></a>
 **S53. University of Washington CSE370, Introduction to Finite State Machines:** https://courses.cs.washington.edu/courses/cse370/DDOR/Tutorials/FSM/Intro.html
+
+<a id="s54"></a>
+**S54. AMD Vivado Design Suite, IDELAYE3 Primitive:** https://docs.amd.com/r/en-US/ug861-ultrascale-selectio/IDELAYE3
+
+<a id="s55"></a>
+**S55. YosysHQ, Yosys Optimization Passes:** https://yosyshq.readthedocs.io/projects/yosys/en/0.46/using_yosys/synthesis/opt.html
+
+<a id="s56"></a>
+**S56. Intel Quartus Prime Pro Edition User Guide, Time Borrowing with Latches:** https://www.intel.com/content/www/us/en/docs/programmable/683243/21-3/time-borrowing-with-latches.html
+
+<a id="s57"></a>
+**S57. GeeksforGeeks, Hardware Description Language:** https://www.geeksforgeeks.org/digital-logic/hardware-description-language/
+
+<a id="s58"></a>
+**S58. Analog Devices, ADC Architectures:** https://www.analog.com/en/resources/technical-articles/adc-architectures.html
+
+<a id="s59"></a>
+**S59. Introduction to Digital Circuits, D-Latch Implemented with a 2:1 Multiplexer:** https://strumpen.net/dc/build/html/basiccircuits/basiccircuits.html
+
+<a id="s60"></a>
+**S60. DeldSim, 2-Bit Up Counter:** https://deldsim.com/study/material/42/2-bit-up-counter/
+
+<a id="s61"></a>
+**S61. GeeksforGeeks, Edge Triggering and Level Triggering:** https://www.geeksforgeeks.org/digital-logic/edge-triggering-and-level-triggering/
+
+<a id="s62"></a>
+**S62. VLSI Universe, FIFO Depth Calculation:** https://vlsiuniverse.blogspot.com/2019/11/fifo-depth-calculation.html
+
+<a id="s63"></a>
+**S63. AMD Embedded FIFO Generator, Actual FIFO Depth:** https://docs.amd.com/r/en-US/pg327-emb-fifo-gen/Actual-FIFO-Depth
+
+<a id="s64"></a>
+**S64. University of Washington BEE271, Multiplexers and Shannon Expansion:** https://staff.washington.edu/kd1uj/BEE271/Lectures/BEE%20271%20Lecture%207%20-%20Multiplexers%20and%20Shannons%20expansion%20-%202017-04-17.pdf
+
+<a id="s65"></a>
+**S65. GeeksforGeeks, Multiplexers in Digital Logic:** https://www.geeksforgeeks.org/digital-logic/multiplexers-in-digital-logic/
+
+<a id="s66"></a>
+**S66. University of Vermont, Registers:** https://www.uvm.edu/~cbcafier/cs2210/content/05_cpu_alu/registers.html
+
+<a id="s67"></a>
+**S67. New Jersey Institute of Technology, Counters:** https://ecelabs.njit.edu/ece294/lab4.php
+
+<a id="s68"></a>
+**S68. New Jersey Institute of Technology, Shift Registers:** https://ecelabs.njit.edu/ece294/lab3.php
+
+<a id="s69"></a>
+**S69. University of Minnesota Duluth, Pipelining:** https://www.d.umn.edu/~gshute/arch/pipelining.html
+
+<a id="s70"></a>
+**S70. AMD UltraScale Architecture CLB User Guide, Asynchronous Clock Domain Crossing:** https://docs.amd.com/r/en-US/ug574-ultrascale-clb/Asynchronous-Clock-Domain-Crossing
+
+<a id="s71"></a>
+**S71. Georgia State University HyperPhysics, Digital Counters and Frequency Division:** https://hyperphysics.phy-astr.gsu.edu/hbase/Electronic/counter.html
