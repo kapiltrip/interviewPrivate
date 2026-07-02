@@ -10,3 +10,6 @@ Done till 52  , will cont from there,
 7. Signed and unsigned values
 8. Review Q144 task vs function: standard restrictions, zero-time rule, call restrictions, Verilog vs SystemVerilog differences, and interview-ready summary.
 9. Review Q145 XOR using CMOS: static CMOS realization, transmission-gate style alternative, pull-up/pull-down explanation, and interview-ready diagram summary.
+10. Start MOSFET revision.
+11. Start STA revision.
+12. Start question revision.
